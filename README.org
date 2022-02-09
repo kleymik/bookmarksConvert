@@ -3,43 +3,39 @@
 
 Way back in the mists of time, browser bookmarks and favourites were
 stored in directory structures as individual files (e.g. with a ".url"
-extension).  They could be managed and searched just like any other
-files. Now they tend to be stored in sqlite and exported into html or
-json. This program can convert any of these formats (back) into a file
-hierarchy.
+extension).  These could be managed and searched just like any other
+files and folders. Now they tend to be stored in sqlite and exported
+into html or json. This program can convert any of these formats
+(back) into a file hierarchy.
 
- Convert bookmarks/favorites from source format (html, json, or sqlite)
- and create corresponding nested folders and files by depth-first-traversal ("dft")
+           bmksConvert.py
+
+Convert bookmarks/favorites from source format (html, json, or sqlite)
+and create corresponding nested folders and files by depth-first-traversal ("dft")
  - file name is bookmark simplified name, with ".url" as extension
  - inside the file are the bookmark details:
      - the exact name ('title') of the bookmark
      - dates (added,modified,last_visited)
      - any other details
  - bookmark last_visited date is used to set modification of file name
-   so that tools like "find" can be used (e.g. find ./ -name '*foo*' -mtime +100 )
+   so that tools like "find" can be used (e.g. find ./ -name '*foo*.url' -mtime +100 )
 
 
+* Usage 
 
-* Installing
- 
-no installer just code
+Usage: bmksConvert.py bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath]
 
+    bookmarks.[html|json|slqlite] - an input file containing bookmarks/favorites in one of these formats
 
-* Usage: bookmark_merger.py [options] dir_path1 dir_path2
+    rootfolderWriteAreaPath - a path to a directory inside which the hierarchy of bookmarks will be created as subfolders and files
+        if omitted, the bookmark data will be printed to stdout in org-mode format (no files or folders will be created)
 
-All html files in the given directories will be assumed to be firefox
-bookmark.html files.
-If no directory is given then the current directory will be used
-
-Options:
-  -h, --help            show this help message and exit
-  -r, --recursive       Recursively explore given directory for bookmark files
-  -o FILE, --outfile=FILE
-                        write output to FILE [default: merged bookmarks.html]
-
+For example:
+     ./bmksConvert.py bmArchive/html/bookmarks_20070817.html
+     ./bmksConvert.py bmArchive/json/bookmarks_20080907.json      ./testArea/json
+     ./bmksConvert.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite
 
 * Description 
---------------------
 
 This is a python library/module written mostly for the purpose of merging multiple bookmark files together. It works only with the bookmark.html files created by firefox (although possibly netscape would use the same files?). Rather than removing all duplicate hyperlinks, it works with the folder structure of the bookmarks; merging together two bookmark files in the same way that two recursive filesystem directories would be combined. Folders with the same name are merged appropriately with the removal of duplicate entries and the merging of entries with the same hyperlink but different strings (see the function - merge_entries).
 
@@ -50,18 +46,13 @@ The second part is a set of functions for creating a recursive set of dictionari
 The module is expected to be used at the python shell or in a script. The example script - 'example.py' - shows high level use.
 
 
-Main Functions & Objects
--------------------------
+* See Also
 
-bookmarkshtml - a pyparsing grammar. Use via 
+http://bookmark-merger.sourceforge.net/
 
-
-See Also
-
-bookmark_merger.py
+https://github.com/johnpi/Bookmark_Merger
 
 
-TO DO
------
+* TO DO
 
-Devide the module into two; (1) the pyparsing grammar and (2) the 'bookmarkDict' functions
+
