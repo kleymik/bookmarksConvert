@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 #
-#     bmksConvert.py  bookmarks convert
+#     bookmarks converter:  bmksConvert.py
 #
 #
 import sys

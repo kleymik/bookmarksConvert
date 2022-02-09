@@ -34,7 +34,7 @@ and create corresponding nested folders and files by depth-first-traversal ("dft
 
 For example:
 
-:     ./bmksConvert.py bmArchive/html/bookmarks_20070817.html
+:     ./bmksConvert.py bmArchive/html/bookmarks_20070817.html  > myBookmarks.org
 :     ./bmksConvert.py bmArchive/json/bookmarks_20080907.json      ./testArea/json
 :     ./bmksConvert.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite
 
