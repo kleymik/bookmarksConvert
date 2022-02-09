@@ -6,16 +6,16 @@ stored in directory structures as individual files (e.g. with a ".url"
 extension).  These could be managed and searched just like any other
 files and folders. Now they tend to be stored in sqlite and exported
 into html or json. This program can convert any of these formats
-(back) into a file hierarchy.
+"back" into a file hierarchy.
 
-           bmksConvert.py
+:          bmksConvert.py
 
 Convert bookmarks/favorites from source format (html, json, or sqlite)
 and create corresponding nested folders and files by depth-first-traversal ("dft")
  - file name is bookmark simplified name, with ".url" as extension
  - inside the file are the bookmark details:
-     - the exact name ('title') of the bookmark
-     - dates (added,modified,last_visited)
+     - the exact name of the bookmark (the title of the html document it points to)
+     - dates (added, modified,last_visited)
      - any other details
  - bookmark last_visited date is used to set modification of file name
    so that tools like "find" can be used (e.g. find ./ -name '*foo*.url' -mtime +100 )
@@ -23,7 +23,7 @@ and create corresponding nested folders and files by depth-first-traversal ("dft
 
 * Usage 
 
-Usage: bmksConvert.py bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath]
+: bmksConvert.py bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath]
 
     bookmarks.[html|json|slqlite] - an input file containing bookmarks/favorites in one of these formats
 
@@ -36,16 +36,6 @@ For example:
 :     ./bmksConvert.py bmArchive/json/bookmarks_20080907.json      ./testArea/json
 :     ./bmksConvert.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite
 
-* Description 
-
-This is a python library/module written mostly for the purpose of merging multiple bookmark files together. It works only with the bookmark.html files created by firefox (although possibly netscape would use the same files?). Rather than removing all duplicate hyperlinks, it works with the folder structure of the bookmarks; merging together two bookmark files in the same way that two recursive filesystem directories would be combined. Folders with the same name are merged appropriately with the removal of duplicate entries and the merging of entries with the same hyperlink but different strings (see the function - merge_entries).
-
-The library consists of two parts. The first is a parsing grammar defined using the 'pyparsing library'. This turns a bookmark file into a recursive collection of strings along with some named attributes consisting of folder name and lists of found hyperlinks. The pyparsing module documentation should be consulted to understand the pyparsing.parseResults class. Optionally the original string can be recreated from the parseResults instance (see function -serialize).
-
-The second part is a set of functions for creating a recursive set of dictionaries and for merging two or more bookmark files together.
-
-The module is expected to be used at the python shell or in a script. The example script - 'example.py' - shows high level use.
-
 
 * See Also
 
@@ -55,5 +45,7 @@ https://github.com/johnpi/Bookmark_Merger
 
 
 * TO DO
+
+
 
 
