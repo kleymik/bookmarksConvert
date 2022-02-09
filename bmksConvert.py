@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 #
+# TBD
+# take out stdoutVerbose
 # wetRun => !dryRun
+# refine org-mode format?
+#
 #     bookmarksToTree.py
 #
 # Way back in the mists of time, browser bookmarks and favourites were
@@ -22,6 +26,8 @@
 import sys
 import re
 import os
+from glob import glob
+import subprocess
 import json
 import sqlite3
 import unicodedata as ud
@@ -32,11 +38,8 @@ from lxml import etree
 from pathlib import Path
 from see import see
 
-# ------------------------------------------------------------------------- globals
-#indntStr = "   "       # indentation string when writing to stdout in dry-run mode
-indntStr = ""          # indentation string when writing to stdout in dry-run mode
-
-stdoutVerbose = True    # show contents of generated files when writing stdout in dry-run mode
+# ------------------------------------------------------------------------- GLOBALS
+indntStr = "   "       # indentation string when writing to stdout in dry-run mode
 
 # ------------------------------------------------------------------------- utility funs
 def cleanupDt(f, sio):
@@ -75,16 +78,16 @@ def closeUrlFile(fileDscrptr, urlDate=None):
             os.utime(urlFileName, times=(stat.st_atime, urlDate))         # utime must have two ints or floats (unix timestamps): (atime, mtime)
 
 
-def makeBookmarkFile(wetRun, fldrPath, name, href, add_date=None, last_visited=None, last_modified=None, icon_uri=None, icon=None, last_charset=None, date_scaling=1):
+def makeBookmarkFile(depth, wetRun, fldrPath, name, href, add_date=None, last_visited=None, last_modified=None, icon_uri=None, icon=None, last_charset=None, date_scaling=1):
     '''create a file named like the title or name associated with url
     add properties of the url into the file
     date_scaling should be either 1 or 1000000 depending on whether the epoch integer date time is in seconds or in microseconds
     '''
-    global stdoutVerbose
 
     pageCleanName = cleanName(name)
     urlFileName   = fldrPath / Path(pageCleanName if pageCleanName!="" else "notitle").with_suffix('.url')
-    print('\n',urlFileName)
+    #print("*"*(depth+1), name)
+    print("+ ", name)
 
     if wetRun: outFile = open(urlFileName, 'w')   # file is not close in this function as it may need more writing to (in the html case)
     else:      outFile = sys.stdout
@@ -94,21 +97,25 @@ def makeBookmarkFile(wetRun, fldrPath, name, href, add_date=None, last_visited=N
         print("WARNING: No Date for", urlFileName, file=sys.stderr)
         addDate =0
 
-    if outFile!=sys.stdout or stdoutVerbose:
-        print(                  "TITLE:",         name,                                                    file=outFile)
-        print(                  "URI:",           href,                                                    file=outFile)
-        print(                  "DATE_ADDED:",    unixEpochToIsoDateTime(addDate),                         file=outFile)
-        # if last_modified: print("DATE_MODIFIED:", unixEpochToIsoDateTime(int(last_modified)/date_scaling), file=outFile)
-        # if last_visited:  print("DATE_VISITED:",  unixEpochToIsoDateTime(int(last_visited)/date_scaling),  file=outFile)
-        # if icon_uri:      print("ICON_URI:",      icon_uri,                                                file=outFile)
-        # if icon:          print("ICON:",          icon,                                                    file=outFile)
-        # if last_charset:  print("LAST_CHARSET:",  last_charset,                                            file=outFile)
+    if outFile!=sys.stdout: prefix, pstfix = "",   ":"     # vanilla key-value notation
+    else:                   prefix, pstfix = " - ", " ::"   # format of org-mode named list entries
+
+    print(                  f"{prefix}TITLE{pstfix}",          name,                                                    file=outFile)
+    print(                  f"{prefix}URI{pstfix}",            href,                                                    file=outFile)
+    print(                  f"{prefix}DATE_ADDED{pstfix}",     unixEpochToIsoDateTime(addDate),                         file=outFile)
+    if last_modified: print(f"{prefix}DATE_MODIFIED{pstfix}",  unixEpochToIsoDateTime(int(last_modified)/date_scaling), file=outFile)
+    if last_visited:  print(f"{prefix}DATE_VISITED{pstfix}",   unixEpochToIsoDateTime(int(last_visited)/date_scaling),  file=outFile)
+    if icon_uri:      print(f"{prefix}ICON_URI{pstfix}",       icon_uri,                                                file=outFile)
+    if icon:          print(f"{prefix}ICON{pstfix}",           icon,                                                    file=outFile)
+    if last_charset:  print(f"{prefix}LAST_CHARSET{pstfix}",   last_charset,                                            file=outFile)
+    print(                   "",                                                                                        file=outFile) # add terminating newline
     return outFile, addDate
 
-def makeBookmarkFolderDir(wetRun, fldrPath, text):
+def makeBookmarkFolderDir(depth, wetRun, fldrPath, text):
     '''use mkdir to create folder path'''
-    subFldrPath = fldrPath / cleanName(text)
-    print(f"os.mkdir({subFldrPath})")
+    clnName = cleanName(text)
+    print("*"*depth, clnName)
+    subFldrPath = fldrPath / clnName
     if wetRun: os.makedirs(subFldrPath, exist_ok=True)
     return subFldrPath
 
@@ -151,10 +158,10 @@ def dftSqliteDict(fldrPath, node, allDict, depth=0, wetRun=False):              
     global indntStr
 
     if 'children' in node:
-        subFldrPath = makeBookmarkFolderDir(wetRun, fldrPath, node['name'])
+        subFldrPath = makeBookmarkFolderDir(depth, wetRun, fldrPath, node['name'])
         for c in node['children']: dftSqliteDict(subFldrPath, allDict[c], allDict, depth+1, wetRun)
     else:
-        outFile, fileDate = makeBookmarkFile(wetRun, fldrPath, node['name'], node['url'], add_date=node['dateAdded'], date_scaling=1000000)
+        outFile, fileDate = makeBookmarkFile(depth, wetRun, fldrPath, node['name'], node['url'], add_date=node['dateAdded'], date_scaling=1000000)
         closeUrlFile(outFile, fileDate)
 
 
@@ -183,13 +190,13 @@ def dftJson(fldrPath, jData, depth=0, wetRun=False):                            
 
     if jData['type']=='text/x-moz-place-container':
         print(indntStr*depth, name)
-        subFldrPath = makeBookmarkFolderDir(wetRun, fldrPath, name)
+        subFldrPath = makeBookmarkFolderDir(depth, wetRun, fldrPath, name)
         for c in jData['children']: dftJson(subFldrPath, c, depth+1)
 
     elif jData['type']=='text/x-moz-place' and jData['title'] not in ('Recently Bookmarked','Recent Tags', 'Most Visited'):
         if 'dateAdded' in jData:
             url = jData['url' if 'url' in jData else 'uri']                    # print(indntStr*depth, cleanName(name), "-------", url)
-            outFile, fileDate = makeBookmarkFile(wetRun, fldrPath, name, url, add_date=jData['dateAdded'], last_modified=jData['lastModified'], date_scaling=1000000)
+            outFile, fileDate = makeBookmarkFile(depth, wetRun, fldrPath, name, url, add_date=jData['dateAdded'], last_modified=jData['lastModified'], date_scaling=1000000)
             closeUrlFile(outFile, fileDate)
         else:
             print(jData['type'], list(jData.items()), file=sys.stderr)
@@ -224,46 +231,18 @@ def readHtmlBookmarks(inFile):
     sio.close()
     return pTree
 
-def dftHtmlX(fldrPath, el, depth=0, wetRun=False):                               # depth first traversal to create fh (=file hierarchy)
-    global stdoutVerbose
-
-    if not wetRun: outFile=sys.stdout
-
-    print("DEBUG0", len(el), el)
-    for e in el:                                                                # typical keys: ['href', 'add_date', 'last_modified', 'icon_uri', 'icon', 'last_charset']
-        print("DEBUG1", e.tag, e.text, e.keys()) # debug
-        if (e.tag=='dd') or (e.tag=='a' and e.text and (e.get('add_date') or e.get('last_visit')) and not e.get('href').startswith('find')): # and not e.get('href').startswith('ftp')
-            if e.tag=='a':
-                try:
-                    outFile, fileDate = makeBookmarkFile(wetRun, fldrPath, e.text, e.get('href'), add_date=e.get('add_date'), last_visited=e.get('last_visit'), icon_uri=e.get('icon_uri'), icon=e.get('icon'), last_charset=e.get('last_charset'))
-                except Exception as e:
-                    print(e)
-                    print("FAILED ON", e.text)
-                    print(e.keys())
-                    closeUrlFile(outFile)
-                    sys.exit()
-            elif e.tag=='dd' and e.text.strip():                                # sometimes (rarely, but it happens) a <DT> is followed by a descriptive <DD> that should also be written into the url file
-                if outFile!=sys.stdout or stdoutVerbose:
-                    print(f"DESCRIPTION:{e.text.strip()}", file=outFile)          # so closing file (below) has to be delayed to after this check here
-
-            if wetRun: closeUrlFile(outFile, fileDate)
-
-        if e.tag=='h3':                                                       # create a subfolder
-            print("DEBUG2", e.tag, e.text, e.keys()) # debug
-            fldrPath = makeBookmarkFolderDir(wetRun, fldrPath, e.text)
-            dftHtmlX(fldrPath, e, depth+1, wetRun=wetRun)
-
-        else:
-            print("OTHER", e.tag, file=sys.stderr,end='')                       # check stderr to see if anything got missed
-            if e.text: print(" TEXT=", e.text, file=sys.stderr,end='')
-            #for k in e.keys(): print(" KEY=", k, e.get(k), file=sys.stderr, end='')
-            print('', file=sys.stderr)
-
-            dftHtmlX(fldrPath, e, depth, wetRun=wetRun)
-
+def compareHtmlFiles(lim):
+    allFiles = glob("/home/kleyn/projects/bookmarksToTree/archiveArea/*.html")[:lim]
+    for ai,fa in enumerate(allFiles):
+        for bi in range(ai+1, len(allFiles)):
+            fb = allFiles[bi]
+            os.system(f"sed 's/^[ \t]*//g' {fa} | sort -u > /tmp/t1")
+            os.system(f"sed 's/^[ \t]*//g' {fb} | sort -u > /tmp/t2")
+            result = int(subprocess.getoutput(f'diff -iwB /tmp/t1 /tmp/t2 | wc -l'))
+            if result<100:
+                print(f"{result:5d}", fa, fb)
 
 def dftHtml(fldrPath, el, depth=0, wetRun=False):                                  # depth first traversal to create fh (=file hierarchy)
-    global stdoutVerbose
     global indntStr
 
     if not wetRun: outFile = sys.stdout
@@ -275,7 +254,7 @@ def dftHtml(fldrPath, el, depth=0, wetRun=False):                               
         if e.tag=='a' and e.text:                                                  # print(indntStr*depth, fldrPath / cleanName(e.text)) #, e.get('href') print(indent*depth, e.tag, e.get('href'), e.text)
 
             try:
-                outFile, fileDate = makeBookmarkFile(wetRun, fldrPath, e.text, e.get('href'), add_date=e.get('add_date'), last_visited=e.get('last_visit'), icon_uri=e.get('icon_uri'), icon=e.get('icon'), last_charset=e.get('last_charset'))
+                outFile, fileDate = makeBookmarkFile(depth, wetRun, fldrPath, e.text, e.get('href'), add_date=e.get('add_date'), last_visited=e.get('last_visit'), icon_uri=e.get('icon_uri'), icon=e.get('icon'), last_charset=e.get('last_charset'))
             except Exception as e:
                 print(e)
                 print(e.keys())
@@ -283,13 +262,13 @@ def dftHtml(fldrPath, el, depth=0, wetRun=False):                               
                 closeUrlFile(outFile)
                 sys.exit()
             if ei+1<numChlds-1 and el[ei+1].tag=='dd':                             # lookahead in case there is a further DESCRIPTON of the anchor, right after it
-                if outFile!=sys.stdout or stdoutVerbose:
+                if outFile!=sys.stdout:
                     print('DESCRIPTION:', el[ei+1].text.strip(), file=outFile)     # sometimes (rarely, but it happens) a <DT> is followed by a descriptive <DD> that should also be written into the url file
             if wetRun: closeUrlFile(outFile, fileDate)
 
         elif e.tag=='h3':
 
-            subFldr = makeBookmarkFolderDir(wetRun, fldrPath, e.text).parts[-1]
+            subFldr = makeBookmarkFolderDir(depth, wetRun, fldrPath, e.text).parts[-1]
 
         elif e.tag in ['dl','dt','p','head','body']: #,'dd']:                      # keep recursing down
 
@@ -346,6 +325,8 @@ if __name__ == "__main__":
         print("        ./bmcTraverse.py bmArchive/json/bookmarks_20080907.json      ./testArea/json")
         print("        ./bmcTraverse.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite W")
         print()
+    elif False:
+        compareHtmlFiles(int(sys.argv[1]))
     else:
         inFile          = Path(sys.argv[1])
         rootWriteFolder = Path(sys.argv[2])
