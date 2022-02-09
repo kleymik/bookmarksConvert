@@ -1,7 +1,14 @@
 #!/usr/bin/env python
+
+# Convert bookmarks/favorites from source format (html, json, or sqlite)
+# and corresponding create folders and files
+# bookmarks details and name in the file
+# bookmark simplified name
+
 import sys
 import re
 import os
+import json
 from io import StringIO
 from lxml import etree
 from see import see
@@ -16,13 +23,33 @@ def cleanupDt(f, sio):
     sio.seek(0)
     return sio
 
+def cleanName(txt): re.sub(r"[^a-zA-Z0-9_\ ]", "", txt).strip().replace(" ","_")
+
 def unixEpochToIsoDateTime(unixIntDateAsStr):
     return dt.fromtimestamp(int(unixIntDateAsStr)).strftime('%Y-%m-%dT%H:%M:%S')
 
-def dftFh(el, fldrPath="/tmp/bmc", wetRun=False):             # depth first traversal create fh (=file hierarchy)
+def readJsonBookMarks(infile):
+    print("FILE", infile)
+    with open(infile, 'r') as source:
+        data = json.load(source)
+        print(data['roots']['bookmark_bar']['children'][0])
+        dftJson(data['roots']['bookmark_bar'])
+
+def dftJson(jData, depth=0):
+
+    if 'children' not in jData:
+        # print("--"*depth, jData['name'], "               ", jData['url'])
+        pass
+    else:
+        print("---"*depth, jData['name'])
+        for c in jData['children']: dftJson(c, depth+1)
+
+
+
+def dftFh(el, fldrPath="/tmp/bmc", wetRun=False):             # depth first traversal to create fh (=file hierarchy)
 
     if not wetRun: outFile=sys.stdout
-    for e in el.getchildren():                                # ['href', 'add_date', 'last_modified', 'icon_uri', 'icon', 'last_charset']
+    for e in el.getchildren():                                # typical keys: ['href', 'add_date', 'last_modified', 'icon_uri', 'icon', 'last_charset']
 
         # print("DEBUG", e.tag, e.text, e.get('href'), e.keys()) # debug
 
@@ -30,10 +57,11 @@ def dftFh(el, fldrPath="/tmp/bmc", wetRun=False):             # depth first trav
             if e.tag=='a':
                 try:
                     pageCleanName = re.sub(r"[^a-zA-Z0-9_\ ]", "", e.text).strip().replace(" ","_")[:200]   # limit file name size
-                    urlFileName = fldrPath+"/"+pageCleanName+'.url'
-                    urlMtime = int(e.get('add_date') or e.get('last_visit'))
-                    if wetRun: outFile = open(urlFileName, 'w')
                     print(pageCleanName)
+                    if wetRun:
+                        urlFileName = fldrPath+"/"+pageCleanName+'.url'
+                        outFile = open(urlFileName, 'w')
+                        urlMtime = int(e.get('add_date') or e.get('last_visit'))
                     if False:
                         print(                          "TITLE:",          e.text,                                         file=outFile)
                         print(                          "URI:",            e.get('href'),                                  file=outFile)
@@ -49,10 +77,11 @@ def dftFh(el, fldrPath="/tmp/bmc", wetRun=False):             # depth first trav
                     print(e.keys())
                     if wetRun: outFile.close()
                     sys.exit()
-            elif e.tag=='dd' and e.text:                      # sometimes (rarely but it happens, at <DT> is followed by adecriptive <DD> that should also be written into the file
-                print("DESCRIPTION:", e.text, file=outFile)
+            elif e.tag=='dd' and e.text.strip():                      # sometimes (rarely, but it happens) a <DT> is followed by a descriptive <DD> that should also be written into the url file
+                print(f"DESCRIPTION:{e.text.strip()}", file=outFile)
 
-            #print("DEBUG:Closing")
+            #print("DEBUG:Closing File")
+
             if wetRun:
                 print("Closing", urlFileName, urlMtime, unixEpochToIsoDateTime(str(urlMtime)))
                 outFile.close()
@@ -61,21 +90,19 @@ def dftFh(el, fldrPath="/tmp/bmc", wetRun=False):             # depth first trav
 
         elif e.tag=='h3':                                   # create a subfolder
 
-            fldrCleanName = re.sub(r"[^a-zA-Z0-9_\ ]", "", e.text).strip().replace(" ","_")
+            # fldrCleanName = re.sub(r"[^a-zA-Z0-9_\ ]", "", e.text).strip().replace(" ","_")
+            fldrCleanName = cleanName(e.text) # re.sub(r"[^a-zA-Z0-9_\ ]", "", e.text).strip().replace(" ","_")
             print(fldrCleanName)
             fldrPath += '/'+fldrCleanName
             print(f"os.mkdir({fldrPath})")
             if wetRun:
                 os.makedirs(fldrPath,exist_ok=True)
 
-        #elif e.tag not in ['dl','p','dt']:
-
-            # print("OTHER-TAG ", e.tag, e.text, e.keys(), file=sys.stderr)
-
         else:
-
-            print("OTHER", e.tag, e.text, e.keys(), file=sys.stderr)
-            for k in e.keys(): print("TAG", k, e.get(k), file=sys.stderr)
+            print("OTHER", e.tag, file=sys.stderr,end='')  # check stderr to see if anything got missed
+            if e.text: print(" TEXT=", e.text, file=sys.stderr,end='')
+            for k in e.keys(): print(" KEY=", k, e.get(k), file=sys.stderr, end='')
+            print('',file=sys.stderr)
 
         dftFh(e, fldrPath=fldrPath, wetRun=wetRun)
 
@@ -85,7 +112,7 @@ def dftPrint(el, depth=0):                                    # depth first trav
     for e in el.getchildren():                                # ['href', 'add_date', 'last_modified', 'icon_uri', 'icon', 'last_charset']
         if e.tag=='a':
             pageCleanName = re.sub(r"[^a-zA-Z0-9_\ ]", "", e.text).strip().replace(" ","_")
-            print(indent*depth, pageCleanName, e.get('href')) # print(indent*depth, e.tag, e.get('href'), e.text)
+            print(indent*depth, cleanName(e.text), e.get('href')) # print(indent*depth, e.tag, e.get('href'), e.text)
         elif e.tag=='h3':
             fldrCleanName = re.sub(r"[^a-zA-Z0-9_\ ]", "", e.text).strip().replace(" ","_")
             print(indent*depth, ' ', fldrCleanName)           # print(indent*depth, e.tag, e.text)
@@ -96,27 +123,30 @@ def dftPrint(el, depth=0):                                    # depth first trav
         dftPrint(e, depth=depth+1)
 
 
-print("len(sys.argv)=", len(sys.argv), file=sys.stderr)
+if __name__ == "__main__":
 
-if len(sys.argv)<2:
-    print("Usage: bmTraverse.py bookmarks.html [folderWriteArea]")
-else:
-    testArea    = "/home/kleyn/projects/bookmarkMerge/testArea"
-    wetRun      = False
-    inFile      = Path(sys.argv[1])
+    print("len(sys.argv)=", len(sys.argv), file=sys.stderr)
 
-    sio = cleanupDt(inFile, StringIO(''))             # parse cleaned-up file using lxml eTree
-    tr = etree.parse(sio, etree.HTMLParser())
-    sio.close()
+    if len(sys.argv)<2:
+        print("Usage: bmTraverse.py bookmarks.[html|json|slqlite] [folderWriteArea]")
+    else:
+        inFile      = Path(sys.argv[1])
+        testArea    = "/home/kleyn/projects/bookmarkMerge/testArea"
 
-    if len(sys.argv)==3 and sys.argv[2]=='W': wetRun = True
-    if wetRun: os.makedirs(testArea+'/'+inFile.stem, exist_ok=True)
-    dftFh(tr.getroot(), fldrPath=testArea+"/"+inFile.stem, wetRun=wetRun)
+        wetRun      = False                              # as opposed to dry-run
+        if len(sys.argv)==3 and sys.argv[2]=='W': wetRun = True
+        if wetRun: os.makedirs(testArea+'/'+inFile.stem, exist_ok=True)
+
+        if inFile.suffix=='.html':
+              sio = cleanupDt(inFile, StringIO(''))             # parse cleaned-up file using lxml eTree
+              tr = etree.parse(sio, etree.HTMLParser())
+              sio.close()
+              dftFh(tr.getroot(), fldrPath=testArea+"/"+inFile.stem, wetRun=wetRun)
+        elif inFile.suffix=='.json':
+              readJsonBookMarks(inFile)
+
 
 #else:        dftPrint(tr.getroot())
-
-
-#if __name__ == "__main__":
 # a https://wiki.python.org/jython/
 # {'href': 'https://wiki.python.org/jython/',
 # 'add_date': '1636306593',
