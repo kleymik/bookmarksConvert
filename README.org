@@ -37,6 +37,10 @@ For example:
 :     ./bmksConvert.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite
 
 
+* python library dependencies
+
+json, sqlite3, lxml, unicodedata, subprocess
+
 * See Also
 
 http://bookmark-merger.sourceforge.net/
