@@ -33,16 +33,20 @@ from pathlib import Path
 from see import see
 
 # ------------------------------------------------------------------------- globals
-#indntStr = "   "         # indentation string when writing to stdout in dry-run mode
-indntStr = ""         # indentation string when writing to stdout in dry-run mode
-stdoutVerbose = False    # show contents of generated files when writing stdout in dry-run mode
+#indntStr = "   "       # indentation string when writing to stdout in dry-run mode
+indntStr = ""          # indentation string when writing to stdout in dry-run mode
+
+stdoutVerbose = True    # show contents of generated files when writing stdout in dry-run mode
 
 # ------------------------------------------------------------------------- utility funs
 def cleanupDt(f, sio):
-    '''remove spurious <DT>s from HTML to avoid which confusing traversal'''
+    '''try to normalise the structure of the HTML by adding closing </tags> to match opening ones
+      or remove spurious tags entirely. So that lxml has a better chance of a sane parse'''
     with open(f, 'r') as infile:
         for ln in infile:
             lnClean = re.sub(r'(\s+)<DT>', r'\1', ln);
+            if lnClean.startswith('<DD>'): lnClean+='</DD>'  # close unclosed <DD>s
+            lnClean = lnClean.replace('<p>','<p></p>')       # close unclosed <p>s
             sio.write(lnClean)
     sio.seek(0)
     return sio
@@ -80,7 +84,7 @@ def makeBookmarkFile(wetRun, fldrPath, name, href, add_date=None, last_visited=N
 
     pageCleanName = cleanName(name)
     urlFileName   = fldrPath / Path(pageCleanName if pageCleanName!="" else "notitle").with_suffix('.url')
-    print(urlFileName)
+    print('\n',urlFileName)
 
     if wetRun: outFile = open(urlFileName, 'w')   # file is not close in this function as it may need more writing to (in the html case)
     else:      outFile = sys.stdout
@@ -94,11 +98,11 @@ def makeBookmarkFile(wetRun, fldrPath, name, href, add_date=None, last_visited=N
         print(                  "TITLE:",         name,                                                    file=outFile)
         print(                  "URI:",           href,                                                    file=outFile)
         print(                  "DATE_ADDED:",    unixEpochToIsoDateTime(addDate),                         file=outFile)
-        if last_modified: print("DATE_MODIFIED:", unixEpochToIsoDateTime(int(last_modified)/date_scaling), file=outFile)
-        if last_visited:  print("DATE_VISITED:",  unixEpochToIsoDateTime(int(last_visited)/date_scaling),  file=outFile)
-        if icon_uri:      print("ICON_URI:",      icon_uri,                                                file=outFile)
-        if icon:          print("ICON:",          icon,                                                    file=outFile)
-        if last_charset:  print("LAST_CHARSET:",  last_charset,                                            file=outFile)
+        # if last_modified: print("DATE_MODIFIED:", unixEpochToIsoDateTime(int(last_modified)/date_scaling), file=outFile)
+        # if last_visited:  print("DATE_VISITED:",  unixEpochToIsoDateTime(int(last_visited)/date_scaling),  file=outFile)
+        # if icon_uri:      print("ICON_URI:",      icon_uri,                                                file=outFile)
+        # if icon:          print("ICON:",          icon,                                                    file=outFile)
+        # if last_charset:  print("LAST_CHARSET:",  last_charset,                                            file=outFile)
     return outFile, addDate
 
 def makeBookmarkFolderDir(wetRun, fldrPath, text):
@@ -258,16 +262,18 @@ def dftHtmlX(fldrPath, el, depth=0, wetRun=False):                              
             dftHtmlX(fldrPath, e, depth, wetRun=wetRun)
 
 
-def dftHtml(fldrPath, el, depth=0, wetRun=False):                               # depth first traversal to create fh (=file hierarchy)
+def dftHtml(fldrPath, el, depth=0, wetRun=False):                                  # depth first traversal to create fh (=file hierarchy)
     global stdoutVerbose
     global indntStr
 
-    if not wetRun: outFile=sys.stdout
+    if not wetRun: outFile = sys.stdout
 
-    subFldr = ''
-    for e in el:                                                                # typical keys: ['href', 'add_date', 'last_modified', 'icon_uri', 'icon', 'last_charset']
-        # print(" "*4*depth, "DEBUG1", e.tag, e.text, e.keys(), f'chlds={len(e)}', fldrPath, file=sys.stderr) # debug
-        if e.tag=='a' and e.text:                                               #print(indntStr*depth, fldrPath / cleanName(e.text)) #, e.get('href') print(indent*depth, e.tag, e.get('href'), e.text)
+    subFldr  = ''
+    numChlds = len(el)
+    for ei,e in enumerate(el):                                                     # typical keys: ['href', 'add_date', 'last_modified', 'icon_uri', 'icon', 'last_charset']         # print(" "*4*depth, "DEBUG", e.tag, e.text, e.keys(), f'chlds={len(e)}', fldrPath) # debug
+
+        if e.tag=='a' and e.text:                                                  # print(indntStr*depth, fldrPath / cleanName(e.text)) #, e.get('href') print(indent*depth, e.tag, e.get('href'), e.text)
+
             try:
                 outFile, fileDate = makeBookmarkFile(wetRun, fldrPath, e.text, e.get('href'), add_date=e.get('add_date'), last_visited=e.get('last_visit'), icon_uri=e.get('icon_uri'), icon=e.get('icon'), last_charset=e.get('last_charset'))
             except Exception as e:
@@ -276,33 +282,50 @@ def dftHtml(fldrPath, el, depth=0, wetRun=False):                               
                 print("FAILED ON", e.text)
                 closeUrlFile(outFile)
                 sys.exit()
+            if ei+1<numChlds-1 and el[ei+1].tag=='dd':                             # lookahead in case there is a further DESCRIPTON of the anchor, right after it
+                if outFile!=sys.stdout or stdoutVerbose:
+                    print('DESCRIPTION:', el[ei+1].text.strip(), file=outFile)     # sometimes (rarely, but it happens) a <DT> is followed by a descriptive <DD> that should also be written into the url file
+            if wetRun: closeUrlFile(outFile, fileDate)
+
         elif e.tag=='h3':
+
             subFldr = makeBookmarkFolderDir(wetRun, fldrPath, e.text).parts[-1]
-        elif e.tag in ['dl','dt','dd','p','head','body']:
-            if e.tag=='dd': print('WARNING: DD', e.text.strip())                 # sometimes (rarely, but it happens) a <DT> is followed by a descriptive <DD> that should also be written into the url file
-            dftHtml(Path(fldrPath) / Path(subFldr), e, depth+1, wetRun=wetRun)   # dftPrint(e, path=path / Path(subFldr), depth=depth+1)
+
+        elif e.tag in ['dl','dt','p','head','body']: #,'dd']:                      # keep recursing down
+
+            dftHtml(Path(fldrPath) / Path(subFldr), e, depth+1, wetRun=wetRun)     # dftPrint(e, path=path / Path(subFldr), depth=depth+1)
 
 
-def dftPrint(el, path='', depth=0):                                              # depth first traversal - make file hierarchy
+def dftPrint(el, path='', depth=0):                                                # depth first traversal - make file hierarchy
     global indntStr
 
     subFldr = ''
-    for e in el:                                          # ['href', 'add_date', 'last_modified', 'icon_uri', 'icon', 'last_charset']
-        print("DEBUG111", depth, e.tag, path, f'chlds={len(e)}')
-        if   e.tag=='a':                                  print(indntStr*depth, Path(path) / cleanName(e.text)) #, e.get('href') print(indent*depth, e.tag, e.get('href'), e.text)
-        elif e.tag=='h3':                                 subFldr = cleanName(e.text)
-        elif e.tag in ['dl','p','dt','head','body','dd']: dftPrint(e, path=path / Path(subFldr), depth=depth+1) # only 'dl' and 'p' have children?
+    numChlds = len(el)
+    for ei,e in enumerate(el):                                                     # print(depth, "DEBUG", e.tag, path, f'chlds={len(e)}', e.keys())
+
+        if e.tag=='a':
+            print(depth, indntStr*depth, "A", ei, cleanName(e.text), end='')       # e.get('href') print(indent*depth, e.tag, e.get('href'), e.text) Path(path) /
+            if ei+1<numChlds-1 and el[ei+1].tag=='dd': print(' DD>', depth, ei+1, el[ei+1].text.strip(), '<DD') # lookahead in case there is a further DESCRIPTON of the anchor, right after it
+            else:                                      print('')
+
+        elif e.tag=='h3':
+            subFldr = cleanName(e.text)
+
+        if e.tag in ['dl','dt','p','head','body']:
+            dftPrint(e, path=path / Path(subFldr), depth=depth+1)                  # only 'dl' and 'p' have children?
 
 
 # Note: typical html structure
-# html tag structure
-# <DT>
-#   <A HREF="https://www.microsoft.com/en-gb/software-download/windows10iso"
-#      ADD_DATE="1635097118"
-#      ICON="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAA..................">
-#      Download Windows 10 Disc Image (ISO File)
-#    </A>
-# <DT>
+# html tag structure:
+#  <DT>
+#    <A HREF="https://www.microsoft.com/en-gb/software-download/windows10iso"
+#       ADD_DATE="1635097118"
+#       ICON="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAA..................">
+#       Download Windows 10 Disc Image (ISO File)
+#     </A>
+#  <DT>
+# hence typical  lxml element keys:
+#   ['href', 'add_date', 'last_modified', 'icon_uri', 'icon', 'last_charset']
 
 
 # ------------------------------------------------------------------------------ main
@@ -341,7 +364,6 @@ if __name__ == "__main__":
         elif inFile.suffix=='.html':
             pTreeObj = readHtmlBookmarks(inFile)
             dftHtml(rootWriteFolder, pTreeObj.getroot(), wetRun=wetRun)
-            #dftHtmlX(Path("fooooo"), pTreeObj.getroot()[1], wetRun=wetRun)
             #dftPrint(pTreeObj.getroot(), path=Path('./foo/'))
 
 
