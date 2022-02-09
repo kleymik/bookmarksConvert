@@ -2,7 +2,6 @@
 #
 # TBD
 # take out stdoutVerbose
-# wetRun => !dryRun
 # refine org-mode format?
 #
 #     bookmarksToTree.py
@@ -78,23 +77,24 @@ def closeUrlFile(fileDscrptr, urlDate=None):
             os.utime(urlFileName, times=(stat.st_atime, urlDate))         # utime must have two ints or floats (unix timestamps): (atime, mtime)
 
 
-def makeBookmarkFile(depth, wetRun, fldrPath, name, href, add_date=None, last_visited=None, last_modified=None, icon_uri=None, icon=None, last_charset=None, date_scaling=1):
+def makeBookmarkFile(depth, name, href, add_date=None, last_visited=None, last_modified=None, icon_uri=None, icon=None, last_charset=None, date_scaling=1, dryRun=True, fldrPath=None):
     '''create a file named like the title or name associated with url
     add properties of the url into the file
     date_scaling should be either 1 or 1000000 depending on whether the epoch integer date time is in seconds or in microseconds
     '''
 
     pageCleanName = cleanName(name)
-    urlFileName   = fldrPath / Path(pageCleanName if pageCleanName!="" else "notitle").with_suffix('.url')
-    #print("*"*(depth+1), name)
-    print("+ ", name)
+    print("+ ", name)       # print("*"*(depth+1), name)
 
-    if wetRun: outFile = open(urlFileName, 'w')   # file is not close in this function as it may need more writing to (in the html case)
-    else:      outFile = sys.stdout
+    if dryRun:
+        outFile = sys.stdout
+    else:
+        urlFileName   = fldrPath / Path(pageCleanName if pageCleanName!="" else "notitle").with_suffix('.url')
+        outFile = open(urlFileName, 'w')   # file is not close in this function as it may need more writing to (in the html case)
 
     if add_date: addDate = int(add_date)/date_scaling
     else:
-        print("WARNING: No Date for", urlFileName, file=sys.stderr)
+        print("WARNING: No Date for", name, file=sys.stderr)
         addDate =0
 
     if outFile!=sys.stdout: prefix, pstfix = "",   ":"     # vanilla key-value notation
@@ -111,12 +111,16 @@ def makeBookmarkFile(depth, wetRun, fldrPath, name, href, add_date=None, last_vi
     print(                   "",                                                                                        file=outFile) # add terminating newline
     return outFile, addDate
 
-def makeBookmarkFolderDir(depth, wetRun, fldrPath, text):
+def makeBookmarkFolderDir(depth, text, dryRun=True, fldrPath=None):
     '''use mkdir to create folder path'''
     clnName = cleanName(text)
     print("*"*depth, clnName)
-    subFldrPath = fldrPath / clnName
-    if wetRun: os.makedirs(subFldrPath, exist_ok=True)
+
+    if not dryRun:
+        subFldrPath = fldrPath / clnName
+        os.makedirs(subFldrPath, exist_ok=True)
+    else:
+        subFldrPath = None
     return subFldrPath
 
 # ------------------------------------------------------------------------- convert sqlite
@@ -153,15 +157,13 @@ def readSqliteBookmarks(dbFile):                                                
     allDict[1]['name'] = 'subroot'
     return allDict
 
-def dftSqliteDict(fldrPath, node, allDict, depth=0, wetRun=False):                  # depth first traversal of dict derived from moz_bookmakrs sqlite table
-
-    global indntStr
+def dftSqliteDict(fldrPath, node, allDict, depth=0, dryRun=True):                  # depth first traversal of dict derived from moz_bookmakrs sqlite table
 
     if 'children' in node:
-        subFldrPath = makeBookmarkFolderDir(depth, wetRun, fldrPath, node['name'])
-        for c in node['children']: dftSqliteDict(subFldrPath, allDict[c], allDict, depth+1, wetRun)
+        subFldrPath = makeBookmarkFolderDir(depth, node['name'], dryRun=dryRun, fldrPath=fldrPath)
+        for c in node['children']: dftSqliteDict(subFldrPath, allDict[c], allDict, depth+1, dryRun)
     else:
-        outFile, fileDate = makeBookmarkFile(depth, wetRun, fldrPath, node['name'], node['url'], add_date=node['dateAdded'], date_scaling=1000000)
+        outFile, fileDate = makeBookmarkFile(depth, node['name'], node['url'], add_date=node['dateAdded'], date_scaling=1000000, dryRun=dryRun, fldrPath=fldrPath)
         closeUrlFile(outFile, fileDate)
 
 
@@ -184,19 +186,19 @@ def readJsonBookmarks(infile):
     with open(infile, 'r') as source: data = json.load(source)
     return data
 
-def dftJson(fldrPath, jData, depth=0, wetRun=False):                            # depth first traversal of json
+def dftJson(fldrPath, jData, depth=0, dryRun=True):                            # depth first traversal of json
     global indntStr
     name = jData['name'] if 'name' in jData else jData['title']
 
     if jData['type']=='text/x-moz-place-container':
         print(indntStr*depth, name)
-        subFldrPath = makeBookmarkFolderDir(depth, wetRun, fldrPath, name)
+        subFldrPath = makeBookmarkFolderDir(depth, name, dryRun=dryRun, fldrPath=fldrPath)
         for c in jData['children']: dftJson(subFldrPath, c, depth+1)
 
     elif jData['type']=='text/x-moz-place' and jData['title'] not in ('Recently Bookmarked','Recent Tags', 'Most Visited'):
         if 'dateAdded' in jData:
             url = jData['url' if 'url' in jData else 'uri']                    # print(indntStr*depth, cleanName(name), "-------", url)
-            outFile, fileDate = makeBookmarkFile(depth, wetRun, fldrPath, name, url, add_date=jData['dateAdded'], last_modified=jData['lastModified'], date_scaling=1000000)
+            outFile, fileDate = makeBookmarkFile(depth, name, url, add_date=jData['dateAdded'], last_modified=jData['lastModified'], date_scaling=1000000, dryRun=dryRun, fldrPath=fldrPath)
             closeUrlFile(outFile, fileDate)
         else:
             print(jData['type'], list(jData.items()), file=sys.stderr)
@@ -242,10 +244,9 @@ def compareHtmlFiles(lim):
             if result<100:
                 print(f"{result:5d}", fa, fb)
 
-def dftHtml(fldrPath, el, depth=0, wetRun=False):                                  # depth first traversal to create fh (=file hierarchy)
-    global indntStr
+def dftHtml(fldrPath, el, depth=0, dryRun=True):                                  # depth first traversal to create fh (=file hierarchy)
 
-    if not wetRun: outFile = sys.stdout
+    if dryRun: outFile = sys.stdout
 
     subFldr  = ''
     numChlds = len(el)
@@ -254,7 +255,7 @@ def dftHtml(fldrPath, el, depth=0, wetRun=False):                               
         if e.tag=='a' and e.text:                                                  # print(indntStr*depth, fldrPath / cleanName(e.text)) #, e.get('href') print(indent*depth, e.tag, e.get('href'), e.text)
 
             try:
-                outFile, fileDate = makeBookmarkFile(depth, wetRun, fldrPath, e.text, e.get('href'), add_date=e.get('add_date'), last_visited=e.get('last_visit'), icon_uri=e.get('icon_uri'), icon=e.get('icon'), last_charset=e.get('last_charset'))
+                outFile, fileDate = makeBookmarkFile(depth, e.text, e.get('href'), add_date=e.get('add_date'), last_visited=e.get('last_visit'), icon_uri=e.get('icon_uri'), icon=e.get('icon'), last_charset=e.get('last_charset'), dryRun=dryRun, fldrPath=fldrPath)
             except Exception as e:
                 print(e)
                 print(e.keys())
@@ -264,15 +265,18 @@ def dftHtml(fldrPath, el, depth=0, wetRun=False):                               
             if ei+1<numChlds-1 and el[ei+1].tag=='dd':                             # lookahead in case there is a further DESCRIPTON of the anchor, right after it
                 if outFile!=sys.stdout:
                     print('DESCRIPTION:', el[ei+1].text.strip(), file=outFile)     # sometimes (rarely, but it happens) a <DT> is followed by a descriptive <DD> that should also be written into the url file
-            if wetRun: closeUrlFile(outFile, fileDate)
+            if not dryRun: closeUrlFile(outFile, fileDate)
 
         elif e.tag=='h3':
 
-            subFldr = makeBookmarkFolderDir(depth, wetRun, fldrPath, e.text).parts[-1]
+            maybePath = makeBookmarkFolderDir(depth, e.text, dryRun=dryRun, fldrPath=fldrPath)
+            if maybePath: subFldr = maybePath.parts[-1]
 
         elif e.tag in ['dl','dt','p','head','body']: #,'dd']:                      # keep recursing down
 
-            dftHtml(Path(fldrPath) / Path(subFldr), e, depth+1, wetRun=wetRun)     # dftPrint(e, path=path / Path(subFldr), depth=depth+1)
+            if fldrPath: subpath = Path(fldrPath) / Path(subFldr)
+            else:        subpath = None
+            dftHtml(subpath, e, depth+1, dryRun=dryRun)     # dftPrint(e, path=path / Path(subFldr), depth=depth+1)
 
 
 def dftPrint(el, path='', depth=0):                                                # depth first traversal - make file hierarchy
@@ -311,40 +315,38 @@ def dftPrint(el, path='', depth=0):                                             
 if __name__ == "__main__":
 
     if len(sys.argv)<2:
-        print("Usage: bmcTraverse.py bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath] [W]")
+        print("Usage: bmcTraverse.py bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath]")
         print()
         print("    bookmarks.[html|json|slqlite] - an input file containing bookmarks/favorites in one of these formats")
         print()
         print("    rootfolderWriteAreaPath - a path to a folder inside which the hierarchy of bookmarks will be created as subfolders and files")
-        print()
-        print("    W flag which must ='W' for files and folders to be created,")
-        print("        otherwise bookmarks and folder information will be written to stdout as a dry-run and no files or folders will be created")
+        print("        if omitted, the boomark data will be printed to stdout in org-mode format (no files or folders will be created)")
         print()
         print("For Example")
-        print("        ./bmcTraverse.py bmArchive/html/bookmarks_20070817.html      ./testArea/html")
-        print("        ./bmcTraverse.py bmArchive/json/bookmarks_20080907.json      ./testArea/json")
-        print("        ./bmcTraverse.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite W")
+        print("     ./bmcTraverse.py bmArchive/html/bookmarks_20070817.html")
+        print("     ./bmcTraverse.py bmArchive/json/bookmarks_20080907.json      ./testArea/json")
+        print("     ./bmcTraverse.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite")
         print()
-    elif False:
-        compareHtmlFiles(int(sys.argv[1]))
     else:
         inFile          = Path(sys.argv[1])
-        rootWriteFolder = Path(sys.argv[2])
 
-        wetRun = False                                                     # i.e. "dry run" is by default true
-        if len(sys.argv)==4 and sys.argv[3]=='W': wetRun = True            # only create (many!) files and folders if 3rd arg="W"
+        if len(sys.argv)==3:
+            rootWriteFolder = Path(sys.argv[2])
+            dryRun = False           # only create (many!) files and folders if 3rd arg="W"
+        else:
+            rootWriteFolder = None
+            dryRun = True            # print to stdout, in org-mode format
 
-        if wetRun: os.makedirs(rootWriteFolder, exist_ok=True)
+        if not dryRun: os.makedirs(rootWriteFolder, exist_ok=True)
 
         if   inFile.suffix=='.sqlite':
             pTreeDict = readSqliteBookmarks(inFile)
-            dftSqliteDict(rootWriteFolder, pTreeDict[0], pTreeDict, wetRun=wetRun)
+            dftSqliteDict(rootWriteFolder, pTreeDict[0], pTreeDict, dryRun=dryRun)
         elif inFile.suffix=='.json':
             pTreeObj = readJsonBookmarks(inFile)
-            dftJson(rootWriteFolder, pTreeObj, wetRun=wetRun)
+            dftJson(rootWriteFolder, pTreeObj, dryRun=dryRun)
         elif inFile.suffix=='.html':
             pTreeObj = readHtmlBookmarks(inFile)
-            dftHtml(rootWriteFolder, pTreeObj.getroot(), wetRun=wetRun)
-            #dftPrint(pTreeObj.getroot(), path=Path('./foo/'))
+            dftHtml(rootWriteFolder, pTreeObj.getroot(), dryRun=dryRun)
 
 
