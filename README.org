@@ -31,9 +31,10 @@ Usage: bmksConvert.py bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath]
         if omitted, the bookmark data will be printed to stdout in org-mode format (no files or folders will be created)
 
 For example:
-     ./bmksConvert.py bmArchive/html/bookmarks_20070817.html
-     ./bmksConvert.py bmArchive/json/bookmarks_20080907.json      ./testArea/json
-     ./bmksConvert.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite
+
+:     ./bmksConvert.py bmArchive/html/bookmarks_20070817.html
+:     ./bmksConvert.py bmArchive/json/bookmarks_20080907.json      ./testArea/json
+:     ./bmksConvert.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite
 
 * Description 
 
