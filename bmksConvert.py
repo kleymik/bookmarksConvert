@@ -6,8 +6,9 @@ from io import StringIO
 from lxml import etree
 from see import see
 
+
 def cleanupDt(f, sio):
-    with open(f, 'r') sio in file:
+    with open(f, 'r') as infile:
         for ln in infile:
             lnClean = re.sub(r'(\s+)<DT>', r'\1', ln);                          # print("BBBBBB",len(ln),ln[:200]); print("AAAAAA",len(lnClean),lnClean[:200])
             sio.write(lnClean)
@@ -18,33 +19,38 @@ def dftFh(el, fldrPath="/tmp/bmc"):                                             
     indent = [" ","*"][0]
     depth = (len(fldrPath) - len("/home/kleyn/projects/bookmarkMerge/testArea"))//2
     for e in el.getchildren():                                                # ['href', 'add_date', 'last_modified', 'icon_uri', 'icon', 'last_charset']
+        # with open(fldPth+"/"+pageCleanName+'.url', 'w') as foo:
         if e.tag=='a' and e.text:
             try:
                 pageCleanName = re.sub(r"[^a-zA-Z0-9_\ ]", "", e.text).strip().replace(" ","_")
-                if False:
-                    #with open(fldPth+"/"+pageCleanName, 'w') as foo:
+                if True:
                     print(indent*depth, pageCleanName)   # print(indent*depth, e.tag, e.get('href'), e.text)
                     #print(indent*depth, "  TITLE::", e.text)
                     #print(indent*depth, "  URI:",    e.get('href'))
-                    print(indent*depth, "  DATE:",   e.get('add_date'))
+                    #print(indent*depth, "  DATE:",   e.get('add_date'))
                     #print(indent*depth, "  DATE:",   e.get('last_modified'))
                     #print(indent*depth, "  ICON_URI:", e.get('icon_uri'))
                     #print(indent*depth, "  ICON:", e.get('icon'))
                     #print(indent*depth, "  DICT:",   e.keys())
-                    if e.get('last_charset'): print(indent*depth, "  LAST_CHARSET:",   e.get('last_charset'))
+                    # if e.get('last_charset'): print(indent*depth, "  LAST_CHARSET:",   e.get('last_charset'))
             except:
                 print("FAILED ON", e.text)
                 sys.exit()
-        elif e.tag=='h3':
-            fldrCleanName = re.sub(r"[^a-zA-Z0-9_\ ]", "", e.text).strip().replace(" ","_")
-            print(indent*depth, '   ', fldrCleanName)
-            # fldrPath += '/'+fldrCleanName
-            fldrPath += '/d'
-            print(f"os.mkdir({fldrPath})")
-        elif e.tag='dd':
-            print("DD", e.tag, file=sys.stderr)
-        elif e.tag not in ['dl','p','dt']:
-            print("OTHER", e.tag, file=sys.stderr)
+        elif e.tag=='dd':                        #needs to happen beforr mkdir
+            if e.text:
+                # print(indent*depth, "DD  DESCRIPTION:",   e.text)
+                pass
+        else:
+            if e.tag=='h3':
+                fldrCleanName = re.sub(r"[^a-zA-Z0-9_\ ]", "", e.text).strip().replace(" ","_")
+                print(indent*depth, '   ', fldrCleanName)
+                # fldrPath += '/'+fldrCleanName
+                fldrPath += '/d'
+                print(f"os.mkdir({fldrPath})")
+            elif e.tag not in ['dl','p','dt']:
+                print("OTHER", e.tag, file=sys.stderr)
+
+
         dftFh(e, fldrPath=fldrPath)
 
 
@@ -55,6 +61,8 @@ def dftPrint(el, depth=0):                                                      
             print(indent*depth, e.text, e.get('href'))                        # print(indent*depth, e.tag, e.get('href'), e.text)
         elif e.tag=='h3':
             print(indent*depth, ' ', e.text)                    # print(indent*depth, e.tag, e.text)
+        elif e.tag=='dd':
+            print("DD", e.text, file=sys.stderr)
         elif e.tag not in ['dl','p','dt']:
             print("OTHER",e.tag, file=sys.stderr)
         dftPrint(e, depth=depth+1)
