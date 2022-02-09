@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#
 # Way back in the mist of time, browser bookmarks and favourites were
 # stored as individual files (e.g with a ".url" extension) in directory structures.
 # They could be managed just like other files. Now they tend to be stored in sqlite
@@ -21,12 +20,16 @@ import re
 import os
 import json
 import sqlite3
+import unicodedata as ud
+import datetime as dt
 from io import StringIO
 from lxml import etree
-from datetime import datetime as dt
-from pathlib import Path
-from see import see
 
+from pathlib import Path
+#from see import see
+
+# ------------------------------------------------------------------------- pass in indent string as a global
+indntStr = "   "
 # ------------------------------------------------------------------------- utility funs
 def cleanupDt(f, sio):                  # remove spurious <DT>s which confuses traversal of HTML
     with open(f, 'r') as infile:
@@ -37,73 +40,116 @@ def cleanupDt(f, sio):                  # remove spurious <DT>s which confuses t
     return sio
 
 def cleanName(txt):                     # derive a reasonable file name from the url name ('title')
-    return re.sub(r"[^a-zA-Z0-9_\ ]", "", txt).strip().replace(" ","_")
-
-def unixEpochToIsoDateTime(unixIntDateAsStr):
-    return dt.fromtimestamp(int(unixIntDateAsStr)).strftime('%Y-%m-%dT%H:%M:%S')
-
-def makeBookmarkFile(wetRun=False, fldrPath, name, href, add_date=None, last_visit=None, icon_uri=None, icon=None, last_charset=None):
-    pageCleanName = cleanName()
-    urlFileName   = fldrPath / pageCleanName+'.url'
-    if wetRun:
-        outFile       = open(urlFileName, 'w')
+    if txt:
+        cleanTxt = re.sub(r"[^a-zA-Z0-9_\ ]", "", txt).strip().replace(" ","_")
+        if len(cleanTxt)>0: return cleanTxt
+        else:               return "noName"
     else:
-        outFile = sys.stdout
-        print(urlFileName, file=outFile)
-    print(                  "TITLE:",         name,                                  file=outFile)
-    print(                  "URI:",           href,                                  file=outFile)
-    print(                  "DATE_ADDED:",    unixEpochToIsoDateTime(add_date),      file=outFile)
-    if last_modified: print("DATE_MODIFIED:", unixEpochToIsoDateTime(last_modified), file=outFile)
-    if icon_uri:      print("ICON_URI:",      icon_uri,                              file=outFile)
-    if icon:          print("ICON:",          icon,                                  file=outFile)
-    if last_charset:  print("LAST_CHARSET:",  last_charset,                          file=outFile)
+        return "noName"
+
+
+def unixEpochToIsoDateTime(unixDateAsInt):
+    # return (dt.datetime(1970, 1, 1) + dt.timedelta(seconds=int(unixIntDateAsStr))).strftime('%Y-%m-%dT%H:%M:%S')     print(unixDateAsInt)
+    isoDt = dt.datetime.fromtimestamp(unixDateAsInt).strftime('%Y-%m-%dT%H:%M:%S')
+    return isoDt
+
+def closeUrlFile(fileDscrptr, urlMtime= None):
+    urlFileName = fileDscrptr.name
+    if fileDscrptr!=sys.stdout:
+        fileDscrptr.close()
+        print("Closed", urlFileName, urlMtime, unixEpochToIsoDateTime(str(urlMtime)))
+        stat = os.stat(urlFileName)                                     # times must have two ints or floats (unix timestamps): (atime, mtime)
+        os.utime(urlFileName, times=(stat.st_atime, urlMtime))
+
+
+def makeBookmarkFile(wetRun, fldrPath, name, href, add_date=None, last_visited=None, last_modified=None, icon_uri=None, icon=None, last_charset=None):
+
+    pageCleanName = cleanName(name)
+
+    urlFileName   = fldrPath / Path(pageCleanName).with_suffix('.url')
+    print(urlFileName)
+
+    if wetRun: outFile = open(urlFileName, 'w')
+    else:      outFile = sys.stdout
+
+    if True:
+        print(                  "TITLE:",         name,                                  file=outFile)
+        print(                  "URI:",           href,                                  file=outFile)
+        print(                  "DATE_ADDED:",    unixEpochToIsoDateTime(add_date),      file=outFile)
+        if last_modified: print("DATE_MODIFIED:", unixEpochToIsoDateTime(last_modified), file=outFile)
+        if last_modified: print("DATE_VISITED:",  unixEpochToIsoDateTime(last_visited),  file=outFile)
+        if icon_uri:      print("ICON_URI:",      icon_uri,                              file=outFile)
+        if icon:          print("ICON:",          icon,                                  file=outFile)
+        if last_charset:  print("LAST_CHARSET:",  last_charset,                          file=outFile)
     return outFile
 
-def makeBookmarkFolderDir(fldrPath, text, wetRun=False):
+def makeBookmarkFolderDir(wetRun, fldrPath, text):
     fldrCleanName = cleanName(text)
-    print(fldrCleanName)
     subFldrPath = fldrPath / fldrCleanName
     print(f"os.mkdir({subFldrPath})")
     if wetRun: os.makedirs(subFldrPath, exist_ok=True)
     return subFldrPath
 
 # ------------------------------------------------------------------------- convert sqlite
+
 def readSqliteBookmarks(dbFile):                                                # convert hierarchy implict in table back into explicit one
     conn = sqlite3.connect(dbFile)
     cur = conn.cursor()
     allDict = {}
-    for (id, title, type, parent, dateAdded, url) in cur.execute(''''SELECT mb.id, mb.title, mb.type, mb.parent, mb.dateAdded, mp.url
-                                                                       FROM moz_bookmarks mb
-                                                                            JOIN moz_places mp ON mb.fk=mp.id
-                                                                   ORDER BY mb.parent ASC'''):
-        allDict[i] = {'id':        i,
-                      'name':      title,
-                      'url':       url,
-                      'type':      type,
-                      'parent':    parent,
-                      'children':  [],
-                      'dateAdded': dateAdded}
+
+    sqry = '''SELECT mb.id, mb.title, mb.type, mb.parent, mb.dateAdded, mp.url
+                FROM moz_bookmarks mb
+           LEFT JOIN moz_places mp ON mb.fk=mp.id
+            ORDER BY mb.id ASC'''
+    cur.execute(sqry)
+    for (id, title, type, parent, dateAdded, url) in cur.fetchall():            # print(id, cleanName(title), parent)
+        allDict[id] = {'id':        id,
+                       'name':      title,
+                       'url':       url,
+                       'type':      type,
+                       'parent':    parent,
+                       'dateAdded': dateAdded}
     conn.close()
 
-    allDict[1]['title'] ='root'                                                 # make tree by getting each parent to point to children
+    allDict[0] = {'id':0, 'name':'root', 'children':[1]}                                                 # make tree by getting each parent to point to children
     for id in allDict:
-        prnt = allDict[id]['parent']
-        if prnt in allDict: allDict[prnt]['children'] += [id]
-        else:               print('Fail to find parent with id=', prnt)
+        # print(id, [ (k, allDict[id][k]) for k in allDict[id] if k!='children' ] )
+        if 'parent' in allDict[id]:
+            prnt = allDict[id]['parent']
+            if prnt in allDict:
+                if 'children' not in allDict[prnt]: allDict[prnt]['children'] = []
+                allDict[prnt]['children'] += [id] # print(prnt,allDict[prnt]['children'])
+            else:
+                print('Failed to find parent with id=', prnt, file=sys.stderr)
+    allDict[1]['name'] = 'subroot'
     return allDict
 
-def dftSqliteDict(fldrPath, dct, depth=0, wetRun=False):                        # depth first traversal of dict derived from moz_bookmakrs sqlite table
-    if 'children' in dct:
-        print("---"*depth, dct['name'])
-        subFldrPath = makeBookmarkFolderDir(wetRun, fldrPath, dct['name'])
-        for c in dct['children']: dftSqliteDict(subFldrPath, c, depth+1)
+def dftSqliteDict(fldrPath, node, allDict, depth=0, wetRun=False):                        # depth first traversal of dict derived from moz_bookmakrs sqlite table
+    global indntStr
+    if 'children' in node:
+        subFldrPath = makeBookmarkFolderDir(wetRun, fldrPath, node['name'])
+        for c in node['children']: dftSqliteDict(subFldrPath, allDict[c], allDict, depth+1, wetRun)
     else:
-        print("--"*depth, dct['name'], "-------", dct['url'])
-        if wetRun:
-            outFile = makeBookmarkFile(wetRun, fldrPath, dct['name'], dct['url'], dct['dateAdded'])
-            if outFile!=sys.stdout: outFile.close()
+        #if 'name' in node and 'url' in node: print(indntStr*depth, node['name'], "-------", node['url'])
+        #else:                                print("Partial record", node.keys(), file=sys.stderr)
+        dateInSeconds = int(node['dateAdded']/1000000)
+        outFile = makeBookmarkFile(wetRun, fldrPath, node['name'], node['url'], )
+        closeUrlFile(outFile, dateinSeconds)
+
+# Note: typical sqlite moz places structure
+# sqlite moz tables:
+# moz_bookmarks (id INTEGER PRIMARY KEY, type INTEGER, fk INTEGER DEFAULT NULL, parent INTEGER, position INTEGER, title LONGVARCHAR, keyword_id INTEGER, folder_type TEXT,
+#                                  dateAdded INTEGER, lastModified INTEGER, guid TEXT, syncStatus INTEGER NOT NULL DEFAULT 0, syncChangeCounter INTEGER NOT NULL DEFAULT 1)
+# moz_places    (id INTEGER PRIMARY KEY, url LONGVARCHAR, title LONGVARCHAR, rev_host LONGVARCHAR, visit_count INTEGER DEFAULT 0, hidden INTEGER DEFAULT 0 NOT NULL,
+#                   typed INTEGER DEFAULT 0 NOT NULL, frecency INTEGER DEFAULT -1 NOT NULL, last_visit_date INTEGER , guid TEXT, foreign_count INTEGER DEFAULT 0 NOT NULL,
+#                    url_hash INTEGER DEFAULT 0 NOT NULL , description TEXT, preview_image_url TEXT, origin_id INTEGER REFERENCES moz_origins(id))
+#
+# scrub the database of dodgy characters otherwise sqlite barfs, e.g.
+#  sqlite3 firefox_places.sqlite '.dump' | string | sqlite3 firefox_places_clean.sqlite
+
 
 # ------------------------------------------------------------------------- convert json
+
 def readJsonBookmarks(infile):
     print("FILE", infile)
     with open(infile, 'r') as source:
@@ -111,18 +157,42 @@ def readJsonBookmarks(infile):
     return data
 
 def dftJson(fldrPath, jData, depth=0, wetRun=False):                            # depth first traversal of json
-    if 'children' in jData:
-        print("---"*depth, jData['title'])
-        subFldrPath = makeBookmarkFolderDir(fldrPath, jData['title'], wetRun)
+    global indntStr
+    if jData['type']=='folder':
+        print(indntStr*depth, jData['title'])
+        subFldrPath = makeBookmarkFolderDir(wetRun, fldrPath, jData['name'])
         for c in jData['children']: dftJson(subFldrPath, c, depth+1)
-    else:
+
+    elif jData['type']=='folder':
         if 'uri' in jData:
-            print("---"*depth, cleanName(jData['title']), "-------", jData['uri'])
-            if wetRun:
-                outFile = makeBookmarkFile(fldrPath, jData['title'], jData['uri'], add_date=None, last_visit=None, icon_uri=None, icon=None, last_charset=None)
-                outFile.close()
+            print(indntStr*depth, cleanName(jData['name']), "-------", jData['url'])
+            outFile = makeBookmarkFileqy(wetRun, fldrPath, jData['name'], jData['url'], add_date=jData['date_added'])
+            closeUrlFile(outFile, , int(jData['date_added']))
+    else:
+        print('unrecognized type', jData['type'], file=sys.stderr)
+        print(jData, file=sys.stderr)
+
+# Note: typical json structure:
+# json record typical fields
+#   links:
+#    {'date_added': '0',
+#     'guid': '7f6a3a6a-d375-4500-8010-2af013a3d12d',
+#     'id': '5',
+#     'name': 'Community',
+#     'type': 'url',
+#     'url': 'https://community.linuxmint.com/'}
+#   folders:
+#    {'date_added': '13276128414300148',
+#     'date_modified': '0'
+#     'guid': ''ba62c54f-d6c8-4943-867b-0d83f30da76f',
+#     'id': '9',
+#     'name': 'Goog',
+#     'type': 'fodler'
+#     'children':[.........]}  more same records
+
 
 # ------------------------------------------------------------------------- convert html
+
 def readHtmlBookmarks(inFile):
     sio = cleanupDt(inFile, StringIO(''))                                       # parse cleaned-up file using lxml eTree
     pTree = etree.parse(sio, etree.HTMLParser())
@@ -138,25 +208,21 @@ def dftHtml(fldrPath, el, depth=0, wetRun=False):                               
             if e.tag=='a':
                 try:
                     print(cleanName(e.text))
-                    if wetRun: outFile = makeBookmarkFile(fldrPath, e.text, e.get('add_date'), e.get('last_visit'), e.get('href'), e.get('icon_uri'), e.get('icon'),e.get('last_charset'))
+                    outFile = makeBookmarkFile(wetRun, fldrPath, e.text, e.get('href'), e.get('add_date'), e.get('last_visit'), e.get('icon_uri'), e.get('icon'), e.get('last_charset'))
                 except Exception as e:
                     print(e)
                     print("FAILED ON", e.text)
                     print(e.keys())
-                    if wetRun: outFile.close()
+                    closeUrlFile(outFile)
                     sys.exit()
             elif e.tag=='dd' and e.text.strip():                                # sometimes (rarely, but it happens) a <DT> is followed by a descriptive <DD> that should also be written into the url file
                 print(f"DESCRIPTION:{e.text.strip()}", file=outFile)            # so closing file (below) has to be delayed to after this check here
 
             if wetRun:
-                urlMtime = int(e.get('add_date'), e.get('last_visit'))
-                print("Closing", urlFileName, urlMtime, unixEpochToIsoDateTime(str(urlMtime)))
-                outFile.close()
-                stat = os.stat(urlFileName)                                     # times must have two ints or floats (unix timestamps): (atime, mtime)
-                os.utime(urlFileName, times=(stat.st_atime, urlMtime))
+                closeUrlFile(outFile, int(e.get('add_date'), e.get('last_visit'))
 
         elif e.tag=='h3':                                                       # create a subfolder
-            subFldrPath = makeBookmarkFolderDir(fldrPath, e.text, wetRun)
+            subFldrPath = makeBookmarkFolderDir(wetRun, fldrPath, e.text)
 
         else:
             print("OTHER", e.tag, file=sys.stderr,end='')                       # check stderr to see if anything got missed
@@ -168,18 +234,38 @@ def dftHtml(fldrPath, el, depth=0, wetRun=False):                               
 
 
 def dftPrint(el, depth=0):                                                      # depth first traversal - make file hierarchy
-    indent = ["   ","*"][0]
+    global indntStr
     for e in el.getchildren():                                                  # ['href', 'add_date', 'last_modified', 'icon_uri', 'icon', 'last_charset']
-        if   e.tag=='a':  print(indent*depth, cleanName(e.text), e.get('href')) # print(indent*depth, e.tag, e.get('href'), e.text)
-        elif e.tag=='h3': print(indent*depth, ' ', cleanName(e.text))           # print(indent*depth, e.tag, e.text)
+        if   e.tag=='a':  print(indntStr*depth, cleanName(e.text), e.get('href')) # print(indent*depth, e.tag, e.get('href'), e.text)
+        elif e.tag=='h3': print(indntStr*depth, ' ', cleanName(e.text))           # print(indent*depth, e.tag, e.text)
         elif e.tag=='dd': print("DD", e.text, file=sys.stderr)
         elif e.tag not in ['dl','p','dt']: print("OTHER",e.tag, file=sys.stderr)
         dftPrint(e, depth=depth+1)
 
+# Note: typical html structure
+# html tag structure
+# <DT>
+#   <A HREF="https://www.microsoft.com/en-gb/software-download/windows10iso"
+#      ADD_DATE="1635097118"
+#      ICON="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAA..................">
+#      Download Windows 10 Disc Image (ISO File)
+#    </A>
+# <DT>
+
+
+# ------------------------------------------------------------------------------ main
 if __name__ == "__main__":
 
     if len(sys.argv)<2:
-        print("Usage: bmcTraverse.py bookmarks.[html|json|slqlite] [rootfolderWriteArea] [W]")
+        print("Usage: bmcTraverse.py bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath] [W]")
+        print()
+        print("    bookmarks.[html|json|slqlite] - an input file containing bookmarks/favorites in one of these formats")
+        print()
+        print("    rootfolderWriteAreaPath - a path to a folder inside which the hierarchy of bookmarks will be created as subfolders and files")
+        print()
+        print("    W flag which must ='W' for files and folders to be created,")
+        print("        otherwise bookmarks and folder information will be written to stdout as a dry-run and no files or folders will be created")
+        print()
     else:
         inFile          = Path(sys.argv[1])
         rootWriteFolder = Path(sys.argv[2])
@@ -191,7 +277,7 @@ if __name__ == "__main__":
 
         if   inFile.suffix=='.sqlite':
             pTreeDict = readSqliteBookmarks(inFile)
-            dftSqliteDict(rootWriteFolder, pTreeDict, wetRun=wetRun)
+            dftSqliteDict(rootWriteFolder, pTreeDict[0], pTreeDict, wetRun=wetRun)
         elif inFile.suffix=='.json':
             pTreeObj = readJsonBookmarks(inFile)
             dftJson(rootWriteFolder, pTreeObj, wetRun=wetRun)
