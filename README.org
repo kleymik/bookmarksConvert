@@ -18,7 +18,9 @@ and create corresponding nested folders and files by depth-first-traversal ("dft
      - dates (added, modified,last_visited)
      - any other details
  - bookmark last_visited date is used to set modification of file name
-   so that tools like "find" can be used (e.g. find ./ -name '*foo*.url' -mtime +100 )
+   so that tools like "find" can be used, e.g
+
+: find ./ -name '*foo*.url' -mtime +100 
 
 
 * Usage 

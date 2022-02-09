@@ -336,7 +336,7 @@ if __name__ == "__main__":
 
         if len(sys.argv)==3:
             rootWriteFolder = Path(sys.argv[2])
-            dryRun = False           # only create (many!) files and folders if 3rd arg="W"
+            dryRun = False           # only create (many!) files and folders if rootfolderWriteAreaPath is provided
         else:
             rootWriteFolder = None
             dryRun = True            # print to stdout, in org-mode format
