@@ -264,7 +264,7 @@ def dftHtml(fldrPath, el, depth=0, dryRun=True):
 
 # ------------------------------------------------------------------------- other html functions
 
-def compareHtmlFiles(htmlDir, lim=10):
+def compareHtmlFiles(htmlDir, lim=100):
     """independent function to give a measure of how similar pairs of html bookmark files are
     """
     allFiles = glob(htmlDir+"/*.html")[:lim]
@@ -272,10 +272,11 @@ def compareHtmlFiles(htmlDir, lim=10):
         for bi in range(ai+1, len(allFiles)):
             fb = allFiles[bi]
             os.system(f"sed 's/^[ \t]*//g' {fa} | sort -u > /tmp/t1")
+            fas = int(subprocess.getoutput(f'wc -l /tmp/t1').split()[0])
             os.system(f"sed 's/^[ \t]*//g' {fb} | sort -u > /tmp/t2")
-            result = int(subprocess.getoutput(f'diff -iwB /tmp/t1 /tmp/t2 | wc -l'))
-            if result<100:
-                print(f"{result:5d}", fa, fb)
+            fbs = int(subprocess.getoutput(f'wc -l /tmp/t2').split()[0])
+            result = int(subprocess.getoutput(f'comm -12 /tmp/t1 /tmp/t2 | wc -l'))
+            if result>0: print(f"{float(result/max(fas,fbs)):5.4f} {result:5d} {fas:5d} {fbs:5d} ", fa, fb)
 
 # ------------------------------------- GLOBAL VAR
 indntStr = "   "       # indentation string when writing to stdout
