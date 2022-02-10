@@ -12,6 +12,7 @@ into html or json. This program can convert any of these formats
 
 Convert bookmarks/favorites from source format (html, json, or sqlite)
 and create corresponding nested folders and files by depth-first-traversal ("dft")
+
  - file name is bookmark simplified name, with ".url" as extension
  - inside the file are the bookmark details:
      - the exact name of the bookmark (the title of the html document it points to)
@@ -20,12 +21,12 @@ and create corresponding nested folders and files by depth-first-traversal ("dft
  - bookmark last_visited date is used to set modification of file name
    so that tools like "find" can be used, e.g
 
-: find ./ -name '*foo*.url' -mtime +100 
+:      find ./ -name '*foo*.url' -mtime +100 
 
 
 * Usage 
 
-: bmksConvert.py bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath]
+:   bmksConvert.py bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath]
 
     bookmarks.[html|json|slqlite] - an input file containing bookmarks/favorites in one of these formats
 
@@ -38,6 +39,62 @@ For example:
 :     ./bmksConvert.py bmArchive/json/bookmarks_20080907.json      ./testArea/json
 :     ./bmksConvert.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite
 
+
+* output
+
+If no rootfolderWriteAreaPath argument is given,  bmksConvert.py prints org-mode format ouput to stdout,
+for example
+
+
+:  ** Genres
+:  *** Science
+:  **** General
+:  +  Scientific American
+:   - TITLE :: Scientific American
+:   - URI :: http://www.sciam.com/
+:   - DATE_ADDED :: 2001-01-29T15:40:38
+:   - DATE_VISITED :: 2004-04-03T20:38:14
+:   - LAST_CHARSET :: ISO-8859-1
+:  
+:  +  ScienceNOW
+:   - TITLE :: ScienceNOW
+:   - URI :: http://sciencenow.sciencemag.org/
+:   - DATE_ADDED :: 2001-01-29T15:40:33
+:   - DATE_VISITED :: 2004-04-03T20:48:15
+:   - LAST_CHARSET :: ISO-8859-1
+:     
+:  ***** Periodical
+:  +  Horizon On-Line
+:   - TITLE :: Horizon On-Line
+:   - URI :: http://www.bbc.co.uk/horizon/
+:   - DATE_ADDED :: 1999-08-20T16:22:46
+:   - DATE_VISITED :: 2000-05-15T20:55:30
+
+hence:
+
+** Genres
+*** Science
+**** General
++  Scientific American
+ - TITLE :: Scientific American
+ - URI :: http://www.sciam.com/
+ - DATE_ADDED :: 2001-01-29T15:40:38
+ - DATE_VISITED :: 2004-04-03T20:38:14
+ - LAST_CHARSET :: ISO-8859-1
+
++  ScienceNOW
+ - TITLE :: ScienceNOW
+ - URI :: http://sciencenow.sciencemag.org/
+ - DATE_ADDED :: 2001-01-29T15:40:33
+ - DATE_VISITED :: 2004-04-03T20:48:15
+ - LAST_CHARSET :: ISO-8859-1
+
+***** Periodical
++  Horizon On-Line
+ - TITLE :: Horizon On-Line
+ - URI :: http://www.bbc.co.uk/horizon/
+ - DATE_ADDED :: 1999-08-20T16:22:46
+ - DATE_VISITED :: 2000-05-15T20:55:30
 
 * python library dependencies
 
