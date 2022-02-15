@@ -21,7 +21,7 @@ and create corresponding nested folders and files by depth-first-traversal ("dft
  - bookmark last_visited date is used to set modification of file name
    so that tools like "find" can be used, e.g
 
-:      find ./ -name '*foo*.url' -mtime +100 
+:      find ./testArea/ -name '*foo*.url' -mtime +100 
 
 
 * Usage 
@@ -43,7 +43,7 @@ For example:
 * output
 
 If no rootfolderWriteAreaPath argument is given,  bmksConvert.py prints org-mode format ouput to stdout,
-for example
+for example:
 
 
 :  ** Genres
@@ -106,8 +106,9 @@ http://bookmark-merger.sourceforge.net/
 
 https://github.com/johnpi/Bookmark_Merger
 
+https://github.com/flexibeast/ebuku, https://github.com/jarun/buku
 
-* TO DO
+* To Do
 
 
 
