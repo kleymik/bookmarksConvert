@@ -1,0 +1,122 @@
+
+* invocation
+
+  kde-open
+  xdg-open
+
+
+* see also
+
+webloccer.py  https://github.com/afwlehmann/webloccer
+
+
+* type of urlFile
+
+** From Gpt
+
+.lnk (Windows Shortcut):    On Windows systems, .lnk files are used as
+shortcuts and may contain URLs. These files are commonly created when
+a user creates a shortcut to a website on their desktop.
+
+.website:    Some Windows systems use .website files to store links to
+websites. These files are essentially XML files containing information
+about the associated URL.
+
+.desktop (Generic):   While .desktop files are commonly associated with
+Linux desktop environments, they can also be used on other
+platforms. These files are often used to create shortcuts or
+launchers, and they may contain URLs.
+
+.uri or .url:   Some systems may use .uri as an alternative extension
+for files containing URLs. Additionally, files with the extension .url
+may be used on various platforms.
+
+.htm or .html (HTML Files):  Simple HTML files can be used to store a
+URL. Users might create small HTML files with a link to a website.
+
+.link:   The .link extension is sometimes used to indicate files
+containing links or shortcuts.
+
+** .kdelnk (KDE)
+
+** .url internet shortcut
+
+[InternetShortcut]
+URL=https://www.gnu.org/software/emacs/manual/html_node/cl/Structures.html
+[SomeMoreInfo]
+blah blah blah
+[metadata]
+foo bar
+
+** .webloc (Mac!)
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>URL</key>
+    <string>http://example.com</string>
+</dict>
+</plist>
+
+** .desktop (gnome?)
+
+
+at (windows) .url file:
+
+[Desktop Entry]
+Icon=text-html
+Type=Link
+URL[$e]=https://superuser.com/questions/27490/create-a-desktop-shortcut-for-a-group-of-bookmarked-tabs-in-firefox
+
+
+[Desktop Entry]
+Encoding=UTF-8
+Name=Link to NETGEAR Router
+Type=Link
+URL=http://192.168.0.1/start.htm
+Icon=text-html
+
+
+
+https://wiki.archlinux.org/title/desktop_entries
+
+** .url file (windows?):
+[Desktop Entry]
+Icon=text-html
+Type=Link
+URL[$e]=https://superuser.com/questions/27490/create-a-desktop-shortcut-for-a-group-of-bookmarked-tabs-in-firefox
+
+*** Desktop Entry
+
+ [Desktop Entry]
+ The type as listed above
+ Type=Application
+ # The version of the desktop entry specification to which this file complies
+ Version=1.0
+ # The name of the application
+ Name=jMemorize
+ # A comment which can/will be used as a tooltip
+ Comment=Flash card based learning tool
+ # The path to the folder in which the executable is run
+ Path=/opt/jmemorise
+ The executable of the application, possibly with arguments.
+ Exec=jmemorize
+ # The name of the icon that will be used to display this entry
+ Icon=jmemorize
+ # Describes whether this application needs to be run in a terminal or not
+ Terminal=false
+ # Describes the categories in which this entry should be shown
+ Categories=Education;Languages;Java;
+
+ 
+* add to mime-types
+
+Make your script executable with the command chmod +x /path/to/your/script.py.
+
+    Use the xdg-mime command to associate a file extension with your script:
+
+xdg-mime default /path/to/your/script.py application/x-extension-url
+xdg-mime default /path/to/your/script.py application/x-extension-webloc
+xdg-mime default /path/to/your/script.py application/x-extension-desktop
+
