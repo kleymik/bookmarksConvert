@@ -10,11 +10,11 @@
 
 import os
 import sys
-import configparser
+import configparser                    # for .url, .desktop
 import plistlib                        # for .webloc xml
 import subprocess
 
-chosenBrowser = ['xdg-open', 'firefox', 'chromium', 'konqueror'] #--new-tab
+chosenBrowser = ['xdg-open', 'firefox', 'chromium', 'konqueror'][1]  #  --new-tab
 
 def open_url_file(file_path):
     _, ext = os.path.splitext(file_path)
@@ -32,12 +32,14 @@ def open_url_file(file_path):
     elif ext=='.desktop':
         config = configparser.ConfigParser(strict=False)
         config.read(file_path)
-        url = config.get('Desktop Entry', 'URL')
+        urlKys = [ k for k in config['Desktop Entry'] if k.upper()[:3]=='URL'] # sometimes the "URL" key has funky qualifiers, e.g. url[$e]=https://ww...
+        if len(urlKys)==1:
+            url = config.get('Desktop Entry', urlKys[0])
 
     if url:
         print(f'Found url: {url}', file=sys.stderr)
         print(f"subprocess.run([{chosenBrowser}, {url}], check=True)")
-        subprocess.run([{chosenBrowser}, url], check=True)
+        subprocess.run([chosenBrowser, url], check=True)
     else:
         print(f'Unsupported file type: {ext}', file=sys.stderr)
 
@@ -49,6 +51,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     open_url_file(sys.argv[1])
+
+# TBD add optional logger!
+
 
 
 # .lnk (Windows Shortcut): On Windows systems, .lnk files are used as shortcuts and may contain URLs. These files are commonly created when a user creates a shortcut to a website on their desktop.
@@ -62,3 +67,4 @@ if __name__ == "__main__":
 # .htm or .html (HTML Files): Simple HTML files can be used to store a URL. Users might create small HTML files with a link to a website.
 
 # .link: The .link extension is sometimes used to indicate files containing links or shortcuts.
+
