@@ -1,17 +1,19 @@
 #!/usr/bin/python3
 #
-# open a .url, .webloc, or .desktop url file
+# open a .url, .webloc, or .desktop url-containing file
 #
-# Script (started by GPT) to open the small files that are used to keep urls
+# Script to open the small files that are used to keep urls
+#
 # There are no firm standards, these are the most common
 #   ".webloc"  - Nextcloud link editor offers which apparently is an Apple-ism
 #                xml so that seems expandable, e.g. even to keep the entire web-page too.
 #   ".url"     - which is kind-of a microsoft-ism?
-#   ".desktop" -
+#   ".desktop" - linuxy used with mimtypes
 #   ".html"    - an actual web-page instead of a link to a page
 
 import os
 import sys
+import re
 import argparse
 import configparser                    # for .url, .desktop
 import plistlib                        # for .webloc xml
@@ -47,12 +49,21 @@ def get_url_file(file_path):
     elif ext=='.webloc':
         with open(file_path, 'rb') as f: url = plistlib.load(f).get('URL')
     elif ext=='.html':
-        # an html file with one url in it works automaticaly with firefox
-        # e.g. <html><head><meta http-equiv="refresh" content="0; url=https://www.youtube.com/watch?v=jWkWD1MBXKU" /></head></html>
-        url = file_path                                                         # just pass the file path to the browser
+        firstLine = open(fl).readline()
+        if firstLine.startswith('<html><head><meta http-equiv="refresh"'):
+            # <html><head><meta http-equiv="refresh" content="0; url=https://www.ft.com/content/f9cf6d1a-0313-4c1f-aeb2-df1f64bd5d3e" /></head></html>
+            mtch = re.search(r'url=(.+)"', firstLine) # from url=http.....to end double-quote
+            if mtch:
+                url = mtch.groups()[0]
+                # <re.Match object; span=(0, 3), match='012'>
+            else:
+                # an html file with one url in it works automaticaly with firefox
+                # e.g. <html><head><meta http-equiv="refresh" content="0; url=https://www.youtube.com/watch?v=jWkWD1MBXKU" /></head></html>
+                url = file_path                                                         # just pass the file path to the browser
     else:
         print(f'Unsupported file type: {ext}')
     return url
+
 
 
 if __name__ == "__main__":
@@ -105,6 +116,7 @@ if __name__ == "__main__":
         elif args.type:                                               # type out the contents of the file
             print("---",fl)
             for l in open(fl): print(l, end='')
+            print()
         elif args.url:                                                # print the embedded url
             print("---",fl)
             print("URL=", get_url_file(fl))
@@ -113,9 +125,12 @@ if __name__ == "__main__":
             print(fl, ":URL=", url)
             subprocess.run([browser, url], check=True, stderr=open(stderrFile, 'w'), text=True)
             if not args.noLog:
-                bh = open(browseLogFile, 'a')
-                print(f"DATE={dt}, URL={url}", file=bh)
-                print(f"DATE={dt}, URL={url}")
+                with open(browseLogFile, 'a') as blf:
+                    print(f"DATE={dt}, ", file=blf)
+                    print(f"URL={url}, ", file=blf)
+                    print(f"FILE={fl}, ", file=blf)
+                    print(f"",            file=blf)
+        # print(f"DATE={dt}, URL={url}")
 
 # TBD inspect first lines for:  "<!doctype html><html..."
 # TBD - if it's a folder open all bookmark files in the folder!
