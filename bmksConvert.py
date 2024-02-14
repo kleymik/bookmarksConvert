@@ -35,7 +35,7 @@ def cleanupTags(f, sio):
 
 
 def cleanName(txt):
-    """derive a reasonable file name ,free of weird characters, from the url name or title
+    """derive a reasonable file name, free of weird characters, from the url name or title
     """
 
     if txt:
@@ -64,7 +64,7 @@ def closeUrlFile(fileDscrptr, urlDate=None):
 
 
 def makeBookmarkFile(depth, name, href, add_date=None, last_visited=None, last_modified=None, icon_uri=None, icon=None, last_charset=None, date_scaling=1, dryRun=True, fldrPath=None):
-    """create a file named like the name or title associated with url and add  the details of the url into the file
+    """create a file named like the name or title associated with url and add the details of the url into the file
        date_scaling should be either 1 or 1000000 depending on whether the epoch integer date time is in seconds or in microseconds
     """
 
@@ -82,7 +82,7 @@ def makeBookmarkFile(depth, name, href, add_date=None, last_visited=None, last_m
         print("WARNING: No Date for", name, file=sys.stderr)
         addDate =0
 
-    if outFile!=sys.stdout: prefix, pstfix = "",   ":"                # vanilla key-value notation
+    if outFile!=sys.stdout: prefix, pstfix = "",    ":"                # vanilla key-value notation
     else:                   prefix, pstfix = " - ", " ::"             # format of org-mode named list entries
 
     print(                  f"{prefix}TITLE{pstfix}",          name,                                                    file=outFile)
@@ -168,7 +168,7 @@ def dftSqliteDict(fldrPath, node, allDict, depth=0, dryRun=True):
 #                    url_hash INTEGER DEFAULT 0 NOT NULL , description TEXT, preview_image_url TEXT, origin_id INTEGER REFERENCES moz_origins(id))
 #
 # scrub the database of dodgy characters otherwise sqlite barfs, e.g.
-#  sqlite3 firefox_places.sqlite '.dump' | string | sqlite3 firefox_places_clean.sqlite
+#  sqlite3 firefox_places.sqlite '.dump' | strings | sqlite3 firefox_places_clean.sqlite
 
 
 # ------------------------------------------------------------------------- convert json
