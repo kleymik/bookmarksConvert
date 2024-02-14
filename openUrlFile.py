@@ -1,54 +1,54 @@
+#!/usr/bin/python3
+#
+# open a .url, .webloc, or .desktop url file
+#
+# Script (started by GPT) to open the small files that are used to keep urls
+# There are no firm standards, these are the most common
+#   Nextcloud link editor offers ".webloc" which apparently is an Apple-ism
+#   or ".url" which is kind-of a microsoft-ism?
+#   .webloc are xml, so that seems for expandle, e.g to keep the entire web-page too.
+
 import os
 import sys
-import urllib.parse
+import configparser
+import plistlib                        # for .webloc xml
+import subprocess
 
-# 20231128_09:44:11 from GPT
+chosenBrowser = ['xdg-open', 'firefox', 'chromium', 'konqueror'] #--new-tab
 
 def open_url_file(file_path):
-    with open(file_path, 'r') as file:
-        # Read the first line of the file
-        first_line = file.readline()
+    _, ext = os.path.splitext(file_path)
+    url = None
 
-        # Check if it contains 'URL=' (for .url files)
-        if first_line.startswith('URL='):
-            url = first_line[4:].strip()
+    ext = ext.lower()
+    if ext=='.url':
+        config = configparser.ConfigParser()
+        config.read(file_path)
+        url = config.get('InternetShortcut', 'URL')
+    elif ext=='.webloc':
+        with open(file_path, 'rb') as f:
+            plist_data = plistlib.load(f)
+            url = plist_data.get('URL')
+    elif ext=='.desktop':
+        config = configparser.ConfigParser(strict=False)
+        config.read(file_path)
+        url = config.get('Desktop Entry', 'URL')
 
-        # Check if it contains 'URL=' (for .desktop files)
-        elif first_line.startswith('Exec=xdg-open '):
-            url = first_line[15:].strip()
+    if url:
+        print(f'Found url: {url}', file=sys.stderr)
+        print(f"subprocess.run([{chosenBrowser}, {url}], check=True)")
+        subprocess.run([{chosenBrowser}, url], check=True)
+    else:
+        print(f'Unsupported file type: {ext}', file=sys.stderr)
 
-        # Check if it contains 'URL=' (for .webloc files)
-        elif first_line.startswith('<?xml version'):
-            for line in file:
-                if '<string>' in line and '</string>' in line:
-                    url = line.strip().replace('<string>', '').replace('</string>', '')
-                    break
-
-        else:
-            print(f"Unsupported file format: {file_path}")
-            return
-
-    # Unquote the URL in case it's percent-encoded
-    url = urllib.parse.unquote(url)
-
-    # Open the URL using xdg-open
-    os.system(f"xdg-open '{url}'")
 
 if __name__ == "__main__":
-    # Check if a file path is provided as a command-line argument
+
     if len(sys.argv) != 2:
-        print("Usage: python open_url_file.py <file_path>")
+        print(f'Usage: {sys.argv[0]} <file>', file=sys.stderr)
         sys.exit(1)
 
-    file_path = sys.argv[1]
-
-    # Check if the file exists
-    if not os.path.exists(file_path):
-        print(f"File not found: {file_path}")
-        sys.exit(1)
-
-    # Invoke the function to open the URL from the file
-    open_url_file(file_path)
+    open_url_file(sys.argv[1])
 
 
 # .lnk (Windows Shortcut): On Windows systems, .lnk files are used as shortcuts and may contain URLs. These files are commonly created when a user creates a shortcut to a website on their desktop.
@@ -62,4 +62,3 @@ if __name__ == "__main__":
 # .htm or .html (HTML Files): Simple HTML files can be used to store a URL. Users might create small HTML files with a link to a website.
 
 # .link: The .link extension is sometimes used to indicate files containing links or shortcuts.
-
