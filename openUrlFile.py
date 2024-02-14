@@ -21,7 +21,7 @@ from glob import glob
 from os.path import expanduser
 
 logDir         = f"{expanduser('~')}/history"
-defaultBrowser = ['xdg-open', 'firefox', 'chromium', 'konqueror'][1]  # could add command line options, such as --new-tab
+defaultBrowser = ['xdg-open', 'firefox', 'chromium', 'konqueror'][1]  # could add command line options, such as --new-tab?
 stderrFile     = f"{logDir}/openUrlFileLast.stderr"
 
 dt = str(datetime.datetime.now())
@@ -73,15 +73,19 @@ if __name__ == "__main__":
     parser.add_argument('-bo', '--xdgopen',   action='store_true')    # browse with xdg-open - beware of infinte recursion xdg-open may decide to use this srcipt !
     parser.add_argument('-nl', '--noLog',     action='store_true')    # log (append) to given log file
 
+    if args.verbose: print("parsing args")
     args = parser.parse_args()                                        # print(args.filename, args.verbose)
     pth = vars(args)['file|folder|glob']
+    if args.verbose: print(args)
 
+    if args.verbose: print("select browser")
     if    args.firefox:   browser='firefox'
     elif  args.chromium:  browser='chromium'
     elif  args.konqueror: browser='konqueror'
     elif  args.xdgopen:   browser='xdg-open'
     else:                 browser = defaultBrowser
 
+    if args.verbose: print("determine file of files")
     pthType = None
     if os.path.isfile(pth):
         pthType='file'
@@ -91,15 +95,15 @@ if __name__ == "__main__":
         files = glob(pth+'/*')
     elif any(c in pth for c in '*?[]'):                               # is it a glob expression (n.b needs to be quoted to avoid shell doing the globbing
         pthType='folder'
-        files = glob(expanduser(pth))                                 #
+        files = glob(expanduser(pth))
     else:
         print(f"failed to interpret {pth}")
         sys.exit(1)
 
     for fl in files:
-        if pthType=='folder' and args.list:                                                 # type out the contents of the file
+        if pthType=='folder' and args.list:                           # type out the contents of the file
             print(fl)
-        elif args.type:                                                 # type out the contents of the file
+        elif args.type:                                               # type out the contents of the file
             print("---",fl)
             for l in open(fl): print(l, end='')
         elif args.url:                                                # print the embedded url
@@ -117,6 +121,6 @@ if __name__ == "__main__":
 # TBD inspect first lines for:  "<!doctype html><html..."
 # TBD - if it's a folder open all bookmark files in the folder!
 # See also https://benchdoos.github.io/
-# https://gitlab.com/claderoki/QuickCut
+#          https://gitlab.com/claderoki/QuickCut
 
 
