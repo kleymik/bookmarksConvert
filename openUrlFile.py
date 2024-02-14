@@ -62,7 +62,7 @@ if __name__ == "__main__":
         description='open url embedded in file',
         epilog='-------- openUrlFile.py --------')
 
-    parser.add_argument('file|folder|glob')                           # positional argument
+    parser.add_argument('file|folder|glob', nargs="+")                # positional argument
     parser.add_argument('-t', '--type',       action='store_true')    # type out the file containing the url
     parser.add_argument('-u', '--url',        action='store_true')    # print the url
     parser.add_argument('-l', '--list',       action='store_true')    # for folders/globs: list the files
@@ -73,8 +73,9 @@ if __name__ == "__main__":
     parser.add_argument('-bo', '--xdgopen',   action='store_true')    # browse with xdg-open - beware of infinte recursion xdg-open may decide to use this srcipt !
     parser.add_argument('-nl', '--noLog',     action='store_true')    # log (append) to given log file
 
-    if args.verbose: print("parsing args")
     args = parser.parse_args()                                        # print(args.filename, args.verbose)
+    if args.verbose: print("parsed args")
+
     pth = vars(args)['file|folder|glob']
     if args.verbose: print(args)
 
@@ -86,22 +87,20 @@ if __name__ == "__main__":
     else:                 browser = defaultBrowser
 
     if args.verbose: print("determine file of files")
-    pthType = None
-    if os.path.isfile(pth):
-        pthType='file'
-        files = [pth]
-    elif os.path.isdir(pth):
-        pthType='folder'
-        files = glob(pth+'/*')
-    elif any(c in pth for c in '*?[]'):                               # is it a glob expression (n.b needs to be quoted to avoid shell doing the globbing
-        pthType='folder'
-        files = glob(expanduser(pth))
+
+    if len(pth)==1 and os.path.isdir(pth[0]):
+        files = glob(expanduser(pth[0])+'/*')
+    elif os.path.isfile(pth[0]):
+        files = pth
+    # elif any(c in pth for c in '*?[]'):                               # is it a glob expression (n.b needs to be quoted to avoid shell doing the globbing
+    #     pthType='folder'
+    #     files = glob(expanduser(pth))
     else:
         print(f"failed to interpret {pth}")
         sys.exit(1)
 
-    for fl in files:
-        if pthType=='folder' and args.list:                           # type out the contents of the file
+    for fl in [expanduser(f) for f in files]:
+        if args.list:                                                # type out the contents of the file
             print(fl)
         elif args.type:                                               # type out the contents of the file
             print("---",fl)
