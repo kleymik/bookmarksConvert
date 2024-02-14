@@ -18,10 +18,11 @@ import plistlib                        # for .webloc xml
 import subprocess
 import datetime
 from glob import glob
+from os.path import expanduser
 
-logDir        = f"{os.path.expanduser('~')}/history"
-chosenBrowser = ['xdg-open', 'firefox', 'chromium', 'konqueror'][1]  # could add command line options, such as --new-tab
-stderrFile    = f"{logDir}/openUrlFileLast.stderr"
+logDir         = f"{expanduser('~')}/history"
+defaultBrowser = ['xdg-open', 'firefox', 'chromium', 'konqueror'][1]  # could add command line options, such as --new-tab
+stderrFile     = f"{logDir}/openUrlFileLast.stderr"
 
 dt = str(datetime.datetime.now())
 browseLogFile = f"{logDir}/openUrlFileBrowseLog_{dt[:6]}.log"        # logfile for each month
@@ -61,34 +62,44 @@ if __name__ == "__main__":
         description='open url embedded in file',
         epilog='-------- openUrlFile.py --------')
 
-    parser.add_argument('file|folder path')                           # positional argument
+    parser.add_argument('file|folder|glob')                           # positional argument
     parser.add_argument('-t', '--type',       action='store_true')    # type out the file containing the url
     parser.add_argument('-u', '--url',        action='store_true')    # print the url
+    parser.add_argument('-l', '--list',       action='store_true')    # for folders/globs: list the files
     parser.add_argument('-v', '--verbose',    action='store_true')    # be verbose
     parser.add_argument('-bf', '--firefox',   action='store_true')    # browse with firefox
     parser.add_argument('-bc', '--chromium',  action='store_true')    # browse with chromium
     parser.add_argument('-bk', '--konqueror', action='store_true')    # browse with konqueror
-    parser.add_argument('-bo', '--xdg-open',  action='store_true')    # browse with xdg-open - beware of infinte recursion xdg-open may decide to use this srcipt !
+    parser.add_argument('-bo', '--xdgopen',   action='store_true')    # browse with xdg-open - beware of infinte recursion xdg-open may decide to use this srcipt !
     parser.add_argument('-nl', '--noLog',     action='store_true')    # log (append) to given log file
 
     args = parser.parse_args()                                        # print(args.filename, args.verbose)
-    pth = vars(args)['file|folder path']
+    pth = vars(args)['file|folder|glob']
+
+    if    args.firefox:   browser='firefox'
+    elif  args.chromium:  browser='chromium'
+    elif  args.konqueror: browser='konqueror'
+    elif  args.xdgopen:   browser='xdg-open'
+    else:                 browser = defaultBrowser
 
     pthType = None
-    if os.path.isfile(pathname):
+    if os.path.isfile(pth):
         pthType='file'
         files = [pth]
-    elif os.path.isdir(pathname):
+    elif os.path.isdir(pth):
         pthType='folder'
-        files = glob(pth)
-    elif any(c in pth for c in '*?[]'):                               # is it a glob expression
-        files = glob(pth)
+        files = glob(pth+'/*')
+    elif any(c in pth for c in '*?[]'):                               # is it a glob expression (n.b needs to be quoted to avoid shell doing the globbing
+        pthType='folder'
+        files = glob(expanduser(pth))                                 #
     else:
         print(f"failed to interpret {pth}")
         sys.exit(1)
 
     for fl in files:
-        if args.type:                                                 # type out the contents of the file
+        if pthType=='folder' and args.list:                                                 # type out the contents of the file
+            print(fl)
+        elif args.type:                                                 # type out the contents of the file
             print("---",fl)
             for l in open(fl): print(l, end='')
         elif args.url:                                                # print the embedded url
@@ -97,7 +108,7 @@ if __name__ == "__main__":
         else:
             url = get_url_file(fl)
             print(fl, ":URL=", url)
-            subprocess.run([chosenBrowser, url], check=True, stderr=open(stderrFile, 'w'), text=True)
+            subprocess.run([browser, url], check=True, stderr=open(stderrFile, 'w'), text=True)
             if not args.noLog:
                 bh = open(browseLogFile, 'a')
                 print(f"DATE={dt}, URL={url}", file=bh)
@@ -107,3 +118,5 @@ if __name__ == "__main__":
 # TBD - if it's a folder open all bookmark files in the folder!
 # See also https://benchdoos.github.io/
 # https://gitlab.com/claderoki/QuickCut
+
+
