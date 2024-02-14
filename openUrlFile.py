@@ -1,78 +1,65 @@
-#!/usr/bin/python3
-# open a .url or desktop url file
+import os
+import sys
+import urllib.parse
 
-import plistlib, sys, os
-#from PyQt5.QtCore import QCoreApplication
-#from PyKDE5.kdecore import KToolInvocation
+# 20231128_09:44:11 from GPT
+
+def open_url_file(file_path):
+    with open(file_path, 'r') as file:
+        # Read the first line of the file
+        first_line = file.readline()
+
+        # Check if it contains 'URL=' (for .url files)
+        if first_line.startswith('URL='):
+            url = first_line[4:].strip()
+
+        # Check if it contains 'URL=' (for .desktop files)
+        elif first_line.startswith('Exec=xdg-open '):
+            url = first_line[15:].strip()
+
+        # Check if it contains 'URL=' (for .webloc files)
+        elif first_line.startswith('<?xml version'):
+            for line in file:
+                if '<string>' in line and '</string>' in line:
+                    url = line.strip().replace('<string>', '').replace('</string>', '')
+                    break
+
+        else:
+            print(f"Unsupported file format: {file_path}")
+            return
+
+    # Unquote the URL in case it's percent-encoded
+    url = urllib.parse.unquote(url)
+
+    # Open the URL using xdg-open
+    os.system(f"xdg-open '{url}'")
+
+if __name__ == "__main__":
+    # Check if a file path is provided as a command-line argument
+    if len(sys.argv) != 2:
+        print("Usage: python open_url_file.py <file_path>")
+        sys.exit(1)
+
+    file_path = sys.argv[1]
+
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        print(f"File not found: {file_path}")
+        sys.exit(1)
+
+    # Invoke the function to open the URL from the file
+    open_url_file(file_path)
 
 
-print("ARGS=",len(sys.argv), sys.argv)
+# .lnk (Windows Shortcut): On Windows systems, .lnk files are used as shortcuts and may contain URLs. These files are commonly created when a user creates a shortcut to a website on their desktop.
 
-fl = sys.argv[1]
-fd = open(fl,"rt")
+# .website: Some Windows systems use .website files to store links to websites. These files are essentially XML files containing information about the associated URL.
 
-for l in fd.readlines():
-    print(l,end='')
-    if l.startswith("URL"):
-        print("Opening URL")
-        url = "https://www.google.com"
-        os.system(f"xdg-open {url}")
-        pass
+# .desktop (Generic): While .desktop files are commonly associated with Linux desktop environments, they can also be used on other platforms. These files are often used to create shortcuts or launchers, and they may contain URLs.
 
-# print(f"Found URL: {url}")
-# sys.exec(f"xdg-open {extractedUrl")
+# .uri or .url: Some systems may use .uri as an alternative extension for files containing URLs. Additionally, files with the extension .url may be used on various platforms.
 
-#   kde-open
-#   xdg-open
+# .htm or .html (HTML Files): Simple HTML files can be used to store a URL. Users might create small HTML files with a link to a website.
 
+# .link: The .link extension is sometimes used to indicate files containing links or shortcuts.
 
-
-# .desktop gome
-# [Desktop Entry]
-# Encoding=UTF-8
-# Name=Link to NETGEAR Router
-# Type=Link
-# URL=http://192.168.0.1/start.htm
-# Icon=text-html
-
-
-# .desktop
-# https://wiki.archlinux.org/title/desktop_entries
-#
-# at (windows) .url file:
-# [Desktop Entry]
-# Icon=text-html
-# Type=Link
-# URL[$e]=https://superuser.com/questions/27490/create-a-desktop-shortcut-for-a-group-of-bookmarked-tabs-in-firefox
-#
-#
-
-
-# https://wiki.archlinux.org/title/desktop_entries
-#
-# at (windows) .url file:
-# [Desktop Entry]
-# Icon=text-html
-# Type=Link
-# URL[$e]=https://superuser.com/questions/27490/create-a-desktop-shortcut-for-a-group-of-bookmarked-tabs-in-firefox
-#
-
-#  [Desktop Entry]
-#  The type as listed above
-#  Type=Application
-#  # The version of the desktop entry specification to which this file complies
-#  Version=1.0
-#  # The name of the application
-#  Name=jMemorize
-#  # A comment which can/will be used as a tooltip
-#  Comment=Flash card based learning tool
-#  # The path to the folder in which the executable is run
-#  Path=/opt/jmemorise
-#  The executable of the application, possibly with arguments.
-#  Exec=jmemorize
-#  # The name of the icon that will be used to display this entry
-#  Icon=jmemorize
-#  # Describes whether this application needs to be run in a terminal or not
-#  Terminal=false
-#  # Describes the categories in which this entry should be shown
-#  Categories=Education;Languages;Java;
