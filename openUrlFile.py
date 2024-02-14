@@ -15,7 +15,7 @@ for l in fd.readlines():
     print(l,end='')
     if l.startswith("URL"):
         print("Opening URL")
-        url = "https://www.googe.com"
+        url = "https://www.google.com"
         os.system(f"xdg-open {url}")
         pass
 

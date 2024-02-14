@@ -1,6 +1,5 @@
 * Introduction
 
-
 Way back in the mists of time, browser bookmarks and favourites were
 stored in directory structures as individual files (e.g. with a ".url"
 extension).  These could be managed and searched just like any other
@@ -10,7 +9,7 @@ into html or json. This program can convert any of these formats
 
 :          bmksConvert.py
 
-Convert bookmarks/favorites from source format (html, json, or sqlite)
+Convert bookmarks/favourites from source format (html, json, or sqlite)
 and create corresponding nested folders and files by depth-first-traversal ("dft")
 
  - file name is bookmark simplified name, with ".url" as extension
@@ -35,14 +34,14 @@ and create corresponding nested folders and files by depth-first-traversal ("dft
 
 For example:
 
-:     ./bmksConvert.py bmArchive/html/bookmarks_20070817.html  > myBookmarks.org
+:     ./bmksConvert.py bmArchive/html/bookmarks_20070817.html       > myBookmarks.org
 :     ./bmksConvert.py bmArchive/json/bookmarks_20080907.json      ./testArea/json
 :     ./bmksConvert.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite
 
 
 * output
 
-If no rootfolderWriteAreaPath argument is given,  bmksConvert.py prints org-mode format ouput to stdout,
+If no rootfolderWriteAreaPath argument is given,  bmksConvert.py prints org-mode format output to stdout,
 for example:
 
 
