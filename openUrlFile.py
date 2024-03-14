@@ -24,7 +24,7 @@ from glob import glob
 from os.path import expanduser
 
 dt             = str(datetime.datetime.now())
-logDir         = f"{expanduser('~')}/history"
+logDir         = f"{expanduser('~')}/history"                         # folder to keep history log of urls opened
 defaultBrowser = ['xdg-open', 'firefox', 'chromium', 'konqueror'][1]  # could add command line options, such as --new-tab?
 stderrFile     = f"{logDir}/openUrlFileLast.stderr"
 browseLogFile  = f"{logDir}/openUrlFileBrowseLog_{dt[:6]}.log"        # logfile for each month
@@ -100,24 +100,18 @@ if __name__ == "__main__":
     if args.verbose: print("determine file or files")
     if len(pth)==1 and os.path.isdir(pth[0]): files = glob(expanduser(pth[0])+'/*')  # if it's a folder path get (glob) all files in the folder
     elif os.path.isfile(pth[0]):              files = pth
-
-    # not needed because argparse accepts shell-glob-expanded list of files
-    # elif any(c in pth for c in '*?[]'):                             # is it a glob expression (n.b needs to be quoted to avoid shell doing the globbing
-    #   pthType='folder'
-    #   files = glob(expanduser(pth))
-
     else:
         print(f"failed to interpret {pth}")
         sys.exit(1)
 
     for fl in [expanduser(f) for f in files]:
-      if args.list:                                                 # type out the name of the file
+      if args.list:                                                   # type out the name of the file
         print(fl)
-      elif args.type:                                               # type out the contents of the file
+      elif args.type:                                                 # type out the contents of the file
         print("---",fl)
         for l in open(fl): print(l, end='')
         print()
-      elif args.url:                                                # print the embedded url
+      elif args.url:                                                  # print the embedded url
         print("---",fl)
         print("URL=", get_url_file(fl))
       else:
@@ -134,7 +128,5 @@ if __name__ == "__main__":
 
 # TBD inspect first lines for:  "<!doctype html><html..."
 # TBD - if it's a folder open all bookmark files in the folder!
-# See also https://benchdoos.github.io/
-#          https://gitlab.com/claderoki/QuickCut
 
 
