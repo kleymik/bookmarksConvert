@@ -1,4 +1,6 @@
 
+OpenUrlFile.py
+
 UrlFiles - files identifying a web-page - containing a url that identifies the web page
   usual in some structured format, e.g attribute=value lines, xml, html, etc
 
@@ -100,10 +102,13 @@ URL[$e]=https://superuser.com/questions/27490/create-a-desktop-shortcut-for-a-gr
  # Describes the categories in which this entry should be shown
  Categories=Education;Languages;Java;
 
+
 * related apps
+
 ** webloccer.py
 
 https://github.com/afwlehmann/webloccer
+
 
 ** QuickCut (firefox extension)
 
@@ -116,16 +121,19 @@ offers 5 url file types but on .html seems to work :
 
 Custom file types cannot be saved in any folde
  
+
 * manipulating mime-types
 
 invoke through
   kde-open
   xdg-open
 
+But caution!, easy to configure in a way that causes and infinite loop:
+openUrlFile.py  calls xdg-open, which calls openurlFile.py, which calls...
+
 1)     xdg-mime query filetype tmp.txt
 2)     xdg-mime query default text/plain 
 3) Set:xdg-mime default gvim.desktop text/plain
-
 
 xdg-query all mime types that used a particular program
 

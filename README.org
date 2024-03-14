@@ -22,6 +22,7 @@ and create corresponding nested folders and files by depth-first-traversal ("dft
 
 :      find ./testArea/ -name '*foo*.url' -mtime +100 
 
+see also addendum tool below: openFileUrl.py - open a bookmark file in a browser
 
 * Usage 
 
@@ -99,8 +100,9 @@ hence:
 * Addendum: openFileUrl.py - Open Bookmark File in Browser
 
 The supplemntary script openFileUrl.py takes any of the common bookmark/url small files - identified by their extension
-(.webloc, .kdelnk, .desktop, .url,.. etc.), parses out the url and invokes  the browser to display it.
+(.webloc, .kdelnk, .desktop, .url,.. etc.), parses out the url and invokes a browser to display it.
 
+see OpenUrlFile.org
 
 * python library dependencies
 
