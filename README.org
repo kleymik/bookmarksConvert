@@ -95,11 +95,26 @@ hence:
  - DATE_ADDED :: 1999-08-20T16:22:46
  - DATE_VISITED :: 2000-05-15T20:55:30
 
+
+* Addendum: openFileUrl.py - Open Bookmark File in Browser
+
+The supplemntary script openFileUrl.py takes any of the common bookmark/url small files - identified by their extension
+(.webloc, .kdelnk, .desktop, .url,.. etc.), parses out the url and invokes  the browser to display it.
+
+
 * python library dependencies
 
-json, sqlite3, lxml, unicodedata, subprocess
+argparse, configparser, datetime, glob, json, lxml, os, os, plistlib, re, sqlite3, subprocess, subprocess, sys, unicodedata
+
+
 
 * See Also
+
+https://benchdoos.github.io/
+
+https://gitlab.com/claderoki/QuickCut
+
+https://github.com/afwlehmann/webloccer
 
 http://bookmark-merger.sourceforge.net/
 

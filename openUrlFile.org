@@ -1,45 +1,36 @@
 
-* invocation
+UrlFiles - files identifying a web-page - containing a url that identifies the web page
+  usual in some structured format, e.g attribute=value lines, xml, html, etc
 
-  kde-open
-  xdg-open
+* types of urlFile
 
-
-* see also
-
-webloccer.py  https://github.com/afwlehmann/webloccer
-
-
-* type of urlFile
-
-** From Gpt
+** From ChatGpt
 
 .lnk (Windows Shortcut):    On Windows systems, .lnk files are used as
-shortcuts and may contain URLs. These files are commonly created when
-a user creates a shortcut to a website on their desktop.
+  shortcuts and may contain URLs. These files are commonly created when
+  a user creates a shortcut to a website on their desktop.
 
 .website:    Some Windows systems use .website files to store links to
-websites. These files are essentially XML files containing information
-about the associated URL.
+  websites. These files are essentially XML files containing information
+  about the associated URL.
 
 .desktop (Generic):   While .desktop files are commonly associated with
-Linux desktop environments, they can also be used on other
-platforms. These files are often used to create shortcuts or
-launchers, and they may contain URLs.
+  Linux desktop environments, they can also be used on other
+  platforms. These files are often used to create shortcuts or
+  launchers, and they may contain URLs.
 
 .uri or .url:   Some systems may use .uri as an alternative extension
-for files containing URLs. Additionally, files with the extension .url
-may be used on various platforms.
+  for files containing URLs. Additionally, files with the extension .url
+  may be used on various platforms.
 
 .htm or .html (HTML Files):  Simple HTML files can be used to store a
-URL. Users might create small HTML files with a link to a website.
+  URL. Users might create small HTML files with a link to a website.
 
 .link:   The .link extension is sometimes used to indicate files
-containing links or shortcuts.
+  containing links or shortcuts.
 
-** .kdelnk (KDE)
-
-** .url internet shortcut
+** .kdelnk   (KDE)
+** .url      internet shortcut
 
 [InternetShortcut]
 URL=https://www.gnu.org/software/emacs/manual/html_node/cl/Structures.html
@@ -48,7 +39,7 @@ blah blah blah
 [metadata]
 foo bar
 
-** .webloc (Mac!)
+** .webloc   (Mac!)
 
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -59,7 +50,7 @@ foo bar
 </dict>
 </plist>
 
-** .desktop (gnome?)
+** .desktop  (gnome?)
 
 
 at (windows) .url file:
@@ -109,8 +100,34 @@ URL[$e]=https://superuser.com/questions/27490/create-a-desktop-shortcut-for-a-gr
  # Describes the categories in which this entry should be shown
  Categories=Education;Languages;Java;
 
+* related apps
+** webloccer.py
+
+https://github.com/afwlehmann/webloccer
+
+** QuickCut (firefox extension)
+
+offers 5 url file types but on .html seems to work :
+ Unix(.desktop)
+ Windows(.url)
+ OSX(.webloc)
+ HTML (.html)
+ Custom
+
+Custom file types cannot be saved in any folde
  
-* add to mime-types
+* manipulating mime-types
+
+invoke through
+  kde-open
+  xdg-open
+
+1)     xdg-mime query filetype tmp.txt
+2)     xdg-mime query default text/plain 
+3) Set:xdg-mime default gvim.desktop text/plain
+
+
+xdg-query all mime types that used a particular program
 
 Make your script executable with the command chmod +x /path/to/your/script.py.
 
@@ -120,3 +137,10 @@ xdg-mime default /path/to/your/script.py application/x-extension-url
 xdg-mime default /path/to/your/script.py application/x-extension-webloc
 xdg-mime default /path/to/your/script.py application/x-extension-desktop
 
+xdg-mime query default firefox.desktop   
+
+grep openUrl /home/kleyn/.config/mimeapps.list
+
+* org settings
+#+STARTUP: fold
+#+STARTUP: overview
