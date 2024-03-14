@@ -55,11 +55,9 @@ def get_url_file(file_path):
         firstLine = open(fl).readline()
         if firstLine.startswith('<html><head><meta http-equiv="refresh"'):
             # for example: <html><head><meta http-equiv="refresh" content="0; url=https://www.ft.com/content/f9cf6d1a-0313-4c1f-aeb2-df1f64bd5d3e" /></head></html>
-            mtch = re.search(r'url=(.+)"', firstLine) # from url=http.....to end double-quote
-            if mtch:
-                url = mtch.groups()[0]                # <re.Match object; span=(0, 3), match='012'>
-            else:                                     # n.b. an html file with one url in it works automaticaly with firefox
-                url = file_path                       # just pass the file path to the browser
+            mtch = re.search(r'url=(.+)"', firstLine)                 # from url=http.....to end double-quote
+            if mtch: url = mtch.groups()[0]                           # <re.Match object; span=(0, 3), match='012'>
+            else:    url = file_path                                  # just pass the file path to the browser    (n.b. an html file with one url in it works automaticaly with firefox)
 
     else:
         print(f'Unsupported file type: {ext}')
