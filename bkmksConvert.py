@@ -361,8 +361,27 @@ def dftPrint(el, path='', depth=0):
 # ------------------------------------------------------------------------------ main
 if __name__ == "__main__":
 
-    if len(sys.argv)<2:
-        print("Usage: bmksConvert.py bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath]")
+    outMode = ['.url','.html'][1]
+    parser = argparse.ArgumentParser(
+        prog='bkmksConvert',
+        description='convert file [.sqlite|.html|.json] containing bookmarks into file hierarchy of single-bookmark files [.html|.url|.webloc|..]',
+        epilog='-------- bkmksConvert.py --------')
+
+    parser.add_argument('file')                # positional argument
+    parser.add_argument('-h',  '--help',     action='store_true')    # be verbose
+    parser.add_argument('-v',  '--verbose',  action='store_true')    # be verbose
+    parser.add_argument('-ow', '--webloc',   action='store_true')    # write url-files in .webloc format
+    parser.add_argument('-oh', '--html',     action='store_true')    # write url-files in .html format
+    parser.add_argument('-ou', '--url',      action='store_true')    # write url-files in .url format
+
+    args = parser.parse_args()                                        # print(args.filename, args.verbose)
+    if args.verbose: print("parsed args", args)
+
+    if    args.firefox:   browser='firefox'
+    if args.verbose: print("determine file or files")
+
+    if args.help
+        print("Usage: bmksConvert.py [-options] bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath]")
         print()
         print("    bookmarks.[html|json|slqlite] - an input file containing bookmarks/favorites in one of these formats")
         print()
@@ -374,8 +393,9 @@ if __name__ == "__main__":
         print("     ./bmksConvert.py bmArchive/json/bookmarks_20080907.json      ./testArea/json")
         print("     ./bmksConvert.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite")
         print()
+        sys.exit(1)
     else:
-        inFile = Path(sys.argv[1])
+        inFile = vars(args)['file']
 
         if len(sys.argv)==3:
             rootWriteFolder = Path(sys.argv[2])
