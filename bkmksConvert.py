@@ -7,6 +7,7 @@
 import sys
 import re
 import os
+import argparse
 import subprocess
 import json
 import sqlite3
@@ -357,30 +358,42 @@ def dftPrint(el, path='', depth=0):
 #   ['href', 'add_date', 'last_modified', 'icon_uri', 'icon', 'last_charset']
 
 
-
 # ------------------------------------------------------------------------------ main
 if __name__ == "__main__":
 
-    outMode = ['.url','.html'][1]
+
+    descrip = '''
+     bookmarks.[html|json|slqlite] - an input file containing bookmarks/favorites in one of these formats
+
+     rootfolderWriteAreaPath - a path to a directory inside which the hierarchy of bookmarks will be created as subfolders and files
+         if omitted, the bookmark data will be printed to stdout in org-mode format (no files or folders will be created)
+
+    For example:
+      ./bmksConvert.py bmArchive/html/bookmarks_20070817.html
+      ./bmksConvert.py bmArchive/json/bookmarks_20080907.json      ./testArea/json
+      ./bmksConvert.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite
+    '''
+
     parser = argparse.ArgumentParser(
-        prog='bkmksConvert',
+        prog='bkmksConvert.py',
         description='convert file [.sqlite|.html|.json] containing bookmarks into file hierarchy of single-bookmark files [.html|.url|.webloc|..]',
-        epilog='-------- bkmksConvert.py --------')
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=descrip)
 
-    parser.add_argument('file')                # positional argument
-    parser.add_argument('-h',  '--help',     action='store_true')    # be verbose
+    parser.add_argument('file',                                 type=str, help='file containing urls') # Add required positional argument
+    parser.add_argument('writeFolder', nargs='?', default=None, type=str, help='path to folder inside which folder & files hierarchy will  be created') # Add optional positional
+    parser.add_argument('-d',  '--dry-run',  action='store_true', help="don't create files and folder in writeFolder")
     parser.add_argument('-v',  '--verbose',  action='store_true')    # be verbose
-    parser.add_argument('-ow', '--webloc',   action='store_true')    # write url-files in .webloc format
-    parser.add_argument('-oh', '--html',     action='store_true')    # write url-files in .html format
-    parser.add_argument('-ou', '--url',      action='store_true')    # write url-files in .url format
-
+    parser.add_argument('-ow', '--webloc',   action='store_true')    # write url files in .webloc format
+    parser.add_argument('-oh', '--html',     action='store_true')    # write url files in .html format
+    parser.add_argument('-ou', '--url',      action='store_true')    # write url files in .url format
+    outMode = ['.url','.html'][1]
     args = parser.parse_args()                                        # print(args.filename, args.verbose)
     if args.verbose: print("parsed args", args)
 
-    if    args.firefox:   browser='firefox'
     if args.verbose: print("determine file or files")
 
-    if args.help
+    if args.help:
         print("Usage: bmksConvert.py [-options] bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath]")
         print()
         print("    bookmarks.[html|json|slqlite] - an input file containing bookmarks/favorites in one of these formats")
@@ -394,7 +407,7 @@ if __name__ == "__main__":
         print("     ./bmksConvert.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite")
         print()
         sys.exit(1)
-    else:
+    elif False:
         inFile = vars(args)['file']
 
         if len(sys.argv)==3:
