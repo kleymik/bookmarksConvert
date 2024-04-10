@@ -82,6 +82,48 @@ def makeBookmarkFile(depth, name, href, add_date=None, last_visited=None, last_m
         print("WARNING: No Date for", name, file=sys.stderr)
         addDate =0
 
+    if outFile!=sys.stdout:
+        prefix, pstfix = "",    ":"               # vanilla key-value notation
+        print("[InternetShortcut]", file=outFile)
+    else:
+        prefix, pstfix = " - ", " ::"             # format of org-mode named list entries
+
+    print(                  f"{prefix}TITLE{pstfix}",          name,                                                    file=outFile)
+    print(                  f"{prefix}URI{pstfix}",            href,                                                    file=outFile)
+    print(                  f"{prefix}DATE_ADDED{pstfix}",     unixEpochToIsoDateTime(addDate),                         file=outFile)
+    if last_modified: print(f"{prefix}DATE_MODIFIED{pstfix}",  unixEpochToIsoDateTime(int(last_modified)/date_scaling), file=outFile)
+    if last_visited:  print(f"{prefix}DATE_VISITED{pstfix}",   unixEpochToIsoDateTime(int(last_visited)/date_scaling),  file=outFile)
+    if icon_uri:      print(f"{prefix}ICON_URI{pstfix}",       icon_uri,                                                file=outFile)
+    if icon:          print(f"{prefix}ICON{pstfix}",           icon,                                                    file=outFile)
+    if last_charset:  print(f"{prefix}LAST_CHARSET{pstfix}",   last_charset,                                            file=outFile)
+    print(                   "",                                                                                        file=outFile) # add details terminating newline
+    return outFile, addDate
+
+def makeBookmarkFileHtml(depth, name, href, add_date=None, last_visited=None, last_modified=None, icon_uri=None, icon=None, last_charset=None, date_scaling=1, dryRun=True, fldrPath=None):
+    """create a file named like the name or title associated with url and add the details of the url into the file
+       date_scaling should be either 1 or 1000000 depending on whether the epoch integer date time is in seconds or in microseconds
+    """
+    # create ".html" file like the .html one Firefox extension "QC Save Link" makes, i.e.
+    # <html>
+    #   <head>
+    #     <meta http-equiv="refresh" content="0; url=https://askubuntu.com/questions/1151709/suspend-not-working-in-ubuntu-18-04-and-19-04" />
+    #  </head>
+    # </html>
+
+    pageCleanName = cleanName(name)
+    print("+ ", name)                                                 # print("*"*(depth+1), name)
+
+    if dryRun:
+        outFile = sys.stdout
+    else:
+        urlFileName   = fldrPath / Path(pageCleanName if pageCleanName!="" else "notitle").with_suffix('.url')
+        outFile = open(urlFileName, 'w')                              # file is not closed in this function as it may need more writing to (in the html parsing case)
+
+    if add_date: addDate = int(add_date)/date_scaling
+    else:
+        print("WARNING: No Date for", name, file=sys.stderr)
+        addDate =0
+
     if outFile!=sys.stdout: prefix, pstfix = "",    ":"                # vanilla key-value notation
     else:                   prefix, pstfix = " - ", " ::"             # format of org-mode named list entries
 
