@@ -7,7 +7,7 @@ files and folders. Now they tend to be stored in sqlite and exported
 into html or json. This program can convert any of these formats
 "back" into a file hierarchy.
 
-:          bmksConvert.py
+:          bkmksConvert.py
 
 Convert bookmarks/favourites from source format (html, json, or sqlite)
 and create corresponding nested folders and files by depth-first-traversal ("dft")
@@ -26,7 +26,7 @@ see also addendum tool below: openFileUrl.py - open a bookmark file in a browser
 
 * Usage 
 
-:   bmksConvert.py bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath]
+:   bkmksConvert.py bookmarks.[html|json|slqlite] [rootfolderWriteAreaPath]
 
     bookmarks.[html|json|slqlite] - an input file containing bookmarks/favorites in one of these formats
 
@@ -35,14 +35,14 @@ see also addendum tool below: openFileUrl.py - open a bookmark file in a browser
 
 For example:
 
-:     ./bmksConvert.py bmArchive/html/bookmarks_20070817.html       > myBookmarks.org
-:     ./bmksConvert.py bmArchive/json/bookmarks_20080907.json      ./testArea/json
-:     ./bmksConvert.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite
+:     ./bkmksConvert.py bmArchive/html/bookmarks_20070817.html       > myBookmarks.org
+:     ./bkmksConvert.py bmArchive/json/bookmarks_20080907.json      ./testArea/json
+:     ./bkmksConvert.py bmArchive/sqlite/firefox_places_2021.sqlite ./testArea/sqlite
 
 
 * output
 
-If no rootfolderWriteAreaPath argument is given,  bmksConvert.py prints org-mode format output to stdout,
+If no rootfolderWriteAreaPath argument is given,  bkmksConvertw.py prints org-mode format output to stdout,
 for example:
 
 
