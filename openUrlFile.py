@@ -25,7 +25,7 @@ from os.path import expanduser
 
 dt             = str(datetime.datetime.now())
 logDir         = f"{expanduser('~')}/history"                         # folder to keep history log of urls opened
-defaultBrowser = ['xdg-open', 'firefox', 'chromium', 'konqueror'][1]  # could add command line options, such as --new-tab?
+defaultBrowser = ['xdg-open', 'firefox', 'chromium', 'konqueror'][1]  # could add command line options, such as --new-tab [url]?
 stderrFile     = f"{logDir}/openUrlFileLast.stderr"
 browseLogFile  = f"{logDir}/openUrlFileBrowseLog_{dt[:6]}.log"        # logfile for each month
 
@@ -115,16 +115,18 @@ if __name__ == "__main__":
       else:
         url = get_url_file(fl)
         print(fl, ":URL=", url)
-        subprocess.run([browser, url], check=True, stderr=open(stderrFile, 'w'), text=True)
         if not args.noLog:
           with open(browseLogFile, 'a') as blf:
             print(f"DATE={dt}, ", file=blf, end='')
             print(f"URL={url}, ", file=blf, end='')
             print(f"FILE={fl}",   file=blf, end='')
             print(f"",            file=blf)
+        subprocess.run([browser, url], check=True, stderr=open(stderrFile, 'w'), text=True)
       # print(f"DATE={dt}, URL={url}")
 
 # TBD inspect first lines for:  "<!doctype html><html..."
 # TBD - if it's a folder open all bookmark files in the folder!
+# See also https://benchdoos.github.io/
+#          https://gitlab.com/claderoki/QuickCut
 
 
