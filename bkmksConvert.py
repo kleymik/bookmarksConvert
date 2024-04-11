@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 #
-#     bookmarks converter:  bmksConvert.py
+#     bookmarks converter:  bkmksConvert.py
 #
 #
 import sys
@@ -19,7 +19,8 @@ from io import StringIO
 from lxml import etree
 from pathlib import Path
 
-# ------------------------------------------------------------------------- utility funs
+# ------------------------------------------------------------------------- utility functions
+
 def cleanupTags(f, sio):
     """try to normalise the structure of the HTML by adding closing </tags> to match opening ones
        or remove spurious tags entirely. So that lxml has a better chance of a sane parse.
@@ -64,7 +65,7 @@ def closeUrlFile(fileDscrptr, urlDate=None):
             os.utime(urlFileName, times=(stat.st_atime, urlDate))     # utime must have two ints or floats (unix timestamps): (atime, mtime)
 
 
-def makeBookmarkFile(depth, name, href, add_date=None, last_visited=None, last_modified=None, icon_uri=None, icon=None, last_charset=None, date_scaling=1, fldrPath=None):
+def makeBookmarkFile(depth, name, href, outFmt, add_date=None, last_visited=None, last_modified=None, icon_uri=None, icon=None, last_charset=None, date_scaling=1, fldrPath=None):
     """create a file named like the name or title associated with url and add the details of the url into the file
        date_scaling should be either 1 or 1000000 depending on whether the epoch integer date time is in seconds or in microseconds
     """
@@ -83,61 +84,48 @@ def makeBookmarkFile(depth, name, href, add_date=None, last_visited=None, last_m
         print("WARNING: No Date for", name, file=sys.stderr)
         addDate =0
 
-    if outFile!=sys.stdout:
-        prefix, pstfix = "",    "="               # vanilla key-value notation
+    if outFmt=='.org' or outFile==sys.stdout:                         # format as org-mode named list entries
         print("[InternetShortcut]", file=outFile)
-    else:
-        prefix, pstfix = " - ", " ::"             # format of org-mode named list entries
+        print(                  f" - TITLE ::{name}",                                                            file=outFile)
+        print(                  f" - URL ::{href}",                                                              file=outFile)
+        print(                  f" - DATE_ADDED ::{unixEpochToIsoDateTime(addDate)}",                            file=outFile)
+        if last_modified: print(f" - DATE_MODIFIED ::{unixEpochToIsoDateTime(int(last_modified)/date_scaling)}", file=outFile)
+        if last_visited:  print(f" - DATE_VISITED ::{unixEpochToIsoDateTime(int(last_visited)/date_scaling)}",   file=outFile)
+        if icon_uri:      print(f" - ICON_URI ::{icon_uri}",                                                     file=outFile)
+        if icon:          print(f" - ICON ::{icon}",                                                             file=outFile)
+        if last_charset:  print(f" - LAST_CHARSET ::{last_charset}",                                             file=outFile)
+        print(                   "",                                                                             file=outFile) # add details terminating newline
+    elif outFmt=='.url':                                              # format as window shortcut .url
+        print("[InternetShortcut]", file=outFile)
+        print(                  f"TITLE={name}",                                                            file=outFile)
+        print(                  f"URL={href}",                                                              file=outFile)
+        print(                  f"DATE_ADDED={unixEpochToIsoDateTime(addDate)}",                            file=outFile)
+        if last_modified: print(f"DATE_MODIFIED={unixEpochToIsoDateTime(int(last_modified)/date_scaling)}", file=outFile)
+        if last_visited:  print(f"DATE_VISITED={unixEpochToIsoDateTime(int(last_visited)/date_scaling)}",   file=outFile)
+        if icon_uri:      print(f"ICON_URI={icon_uri}",                                                     file=outFile)
+        if icon:          print(f"ICON={icon}",                                                             file=outFile)
+        if last_charset:  print(f"LAST_CHARSET={last_charset}",                                             file=outFile)
+        print(                   "",                                                                        file=outFile) # add details terminating newline
+    elif outFmt=='.html':
+        # create ".html" file like the .html one Firefox extension "QC Save Link" makes, i.e.
+        # <html>
+        #   <head>
+        #     <meta http-equiv="refresh" content="0; url=https://askubuntu.com/questions/1151709/suspend-not-working-in-ubuntu-18-04-and-19-04" />
+        #  </head>
+        # </html>
+        print("", file=outFile) # add details terminating newline
+    elif outFmt=='.webloc':
+        # <?xml version="1.0" encoding="UTF-8"?>
+        # <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        # <plist version="1.0">
+        # <dict>
+        #    <key>URL</key>
+        #    <string>http://example.com</string>
+        # </dict>
+        # </plist>
+        print("", file=outFile) # add details terminating newline
 
-    print(                  f"{prefix}TITLE{pstfix}{name}",                                                            file=outFile)
-    print(                  f"{prefix}URL{pstfix}{href}",                                                              file=outFile)
-    print(                  f"{prefix}DATE_ADDED{pstfix}{unixEpochToIsoDateTime(addDate)}",                            file=outFile)
-    if last_modified: print(f"{prefix}DATE_MODIFIED{pstfix}{unixEpochToIsoDateTime(int(last_modified)/date_scaling)}", file=outFile)
-    if last_visited:  print(f"{prefix}DATE_VISITED{pstfix}{unixEpochToIsoDateTime(int(last_visited)/date_scaling)}",   file=outFile)
-    if icon_uri:      print(f"{prefix}ICON_URI{pstfix}{icon_uri}",                                                     file=outFile)
-    if icon:          print(f"{prefix}ICON{pstfix}{icon}",                                                             file=outFile)
-    if last_charset:  print(f"{prefix}LAST_CHARSET{pstfix}{last_charset}",                                             file=outFile)
-    print(                   "",                                                                                       file=outFile) # add details terminating newline
-    return outFile, addDate
 
-# TBD
-def makeBookmarkFileHtml(depth, name, href, add_date=None, last_visited=None, last_modified=None, icon_uri=None, icon=None, last_charset=None, date_scaling=1, fldrPath=None):
-    """create a file named like the name or title associated with url and add the details of the url into the file
-       date_scaling should be either 1 or 1000000 depending on whether the epoch integer date time is in seconds or in microseconds
-    """
-    # create ".html" file like the .html one Firefox extension "QC Save Link" makes, i.e.
-    # <html>
-    #   <head>
-    #     <meta http-equiv="refresh" content="0; url=https://askubuntu.com/questions/1151709/suspend-not-working-in-ubuntu-18-04-and-19-04" />
-    #  </head>
-    # </html>
-
-    pageCleanName = cleanName(name)
-    print("+ ", name)                                                 # print("*"*(depth+1), name)
-
-    if fldrPath is None:
-        outFile = sys.stdout
-    else:
-        urlFileName   = fldrPath / Path(pageCleanName if pageCleanName!="" else "notitle").with_suffix('.url')
-        outFile = open(urlFileName, 'w', encoding='utf-8')            # file is not closed in this function as it may need more writing to (in the html parsing case)
-
-    if add_date: addDate = int(add_date)/date_scaling
-    else:
-        print("WARNING: No Date for", name, file=sys.stderr)
-        addDate =0
-
-    if outFile!=sys.stdout: prefix, pstfix = "",    ":"                # vanilla key-value notation
-    else:                   prefix, pstfix = " - ", " ::"             # format of org-mode named list entries
-
-    print(                  f"{prefix}TITLE{pstfix}",          name,                                                    file=outFile)
-    print(                  f"{prefix}URI{pstfix}",            href,                                                    file=outFile)
-    print(                  f"{prefix}DATE_ADDED{pstfix}",     unixEpochToIsoDateTime(addDate),                         file=outFile)
-    if last_modified: print(f"{prefix}DATE_MODIFIED{pstfix}",  unixEpochToIsoDateTime(int(last_modified)/date_scaling), file=outFile)
-    if last_visited:  print(f"{prefix}DATE_VISITED{pstfix}",   unixEpochToIsoDateTime(int(last_visited)/date_scaling),  file=outFile)
-    if icon_uri:      print(f"{prefix}ICON_URI{pstfix}",       icon_uri,                                                file=outFile)
-    if icon:          print(f"{prefix}ICON{pstfix}",           icon,                                                    file=outFile)
-    if last_charset:  print(f"{prefix}LAST_CHARSET{pstfix}",   last_charset,                                            file=outFile)
-    print(                   "",                                                                                        file=outFile) # add details terminating newline
     return outFile, addDate
 
 
@@ -200,7 +188,7 @@ def dftSqliteDict(fldrPath, node, allDict, outFmt, depth=0):
         subFldrPath = makeBookmarkFolderDir(depth, node['name'], fldrPath=fldrPath)
         for c in node['children']: dftSqliteDict(subFldrPath, allDict[c], allDict, outFmt, depth+1)
     else:
-        outFile, fileDate = makeBookmarkFile(depth, node['name'], node['url'], add_date=node['dateAdded'], date_scaling=1000000, fldrPath=fldrPath)
+        outFile, fileDate = makeBookmarkFile(depth, node['name'], node['url'], outFmt, add_date=node['dateAdded'], date_scaling=1000000, fldrPath=fldrPath)
         closeUrlFile(outFile, fileDate)
 
 
@@ -235,7 +223,7 @@ def dftJson(fldrPath, jData, outFmt, depth=0):
     elif jData['type']=='text/x-moz-place' and jData['title'] not in ('Recently Bookmarked','Recent Tags', 'Most Visited'):
         if 'dateAdded' in jData:
             url = jData['url' if 'url' in jData else 'uri']
-            outFile, fileDate = makeBookmarkFile(depth, name, url, add_date=jData['dateAdded'], last_modified=jData['lastModified'], date_scaling=1000000, fldrPath=fldrPath)
+            outFile, fileDate = makeBookmarkFile(depth, name, url, outFmt, add_date=jData['dateAdded'], last_modified=jData['lastModified'], date_scaling=1000000, fldrPath=fldrPath)
             closeUrlFile(outFile, fileDate)
         else:
             print(jData['type'], list(jData.items()), file=sys.stderr)
@@ -284,7 +272,7 @@ def dftHtml(fldrPath, el, outFmt, depth=0):
         if e.tag=='a' and e.text:                                                  # print(indntStr*depth, fldrPath / cleanName(e.text)) #, e.get('href') print(indent*depth, e.tag, e.get('href'), e.text)
 
             try:
-                outFile, fileDate = makeBookmarkFile(depth, e.text, e.get('href'), add_date=e.get('add_date'), last_visited=e.get('last_visit'), icon_uri=e.get('icon_uri'), icon=e.get('icon'), last_charset=e.get('last_charset'), fldrPath=fldrPath)
+                outFile, fileDate = makeBookmarkFile(depth, e.text, e.get('href'), outFmt, add_date=e.get('add_date'), last_visited=e.get('last_visit'), icon_uri=e.get('icon_uri'), icon=e.get('icon'), last_charset=e.get('last_charset'), fldrPath=fldrPath)
             except Exception as e:
                 print(e)
                 print(e.keys())
