@@ -64,6 +64,7 @@ def closeUrlFile(fileDscrptr, urlDate=None):
             stat = os.stat(urlFileName)
             os.utime(urlFileName, times=(stat.st_atime, urlDate))     # utime must have two ints or floats (unix timestamps): (atime, mtime)
 
+# ------------------------------------------------------------------------- functions to create files and folders
 
 def makeBookmarkFile(depth, name, href, outFmt, add_date=None, last_visited=None, last_modified=None, icon_uri=None, icon=None, last_charset=None, date_scaling=1, fldrPath=None):
     """create a file named like the name or title associated with url and add the details of the url into the file
@@ -71,21 +72,22 @@ def makeBookmarkFile(depth, name, href, outFmt, add_date=None, last_visited=None
     """
 
     pageCleanName = cleanName(name)
-    print("+ ", name)                                                 # print("*"*(depth+1), name)
+    if args.verbose: print("+ ", name)                                                     # print("*"*(depth+1), name)
 
     if fldrPath is None:
         outFile = sys.stdout
     else:
-        urlFileName   = fldrPath / Path(pageCleanName if pageCleanName!="" else "notitle").with_suffix('.url')
-        outFile = open(urlFileName, 'w', encoding='utf-8')            # file is not closed in this function as it may need more writing to (in the html parsing case)
+        urlFileName   = fldrPath / Path(pageCleanName if pageCleanName!="" else "notitle").with_suffix(outFmt)
+        outFile = open(urlFileName, 'w', encoding='utf-8')                                 # file is not closed in this function as it may need more writing to (in the html parsing case)
+
 
     if add_date: addDate = int(add_date)/date_scaling
     else:
         print("WARNING: No Date for", name, file=sys.stderr)
-        addDate =0
+        addDate = 0
 
-    if outFmt=='.org' or outFile==sys.stdout:                         # format as org-mode named list entries
-        print("[InternetShortcut]", file=outFile)
+
+    if outFmt=='.org' or outFile==sys.stdout:                                              # format as org-mode named list entries
         print(                  f" - TITLE ::{name}",                                                            file=outFile)
         print(                  f" - URL ::{href}",                                                              file=outFile)
         print(                  f" - DATE_ADDED ::{unixEpochToIsoDateTime(addDate)}",                            file=outFile)
@@ -94,9 +96,10 @@ def makeBookmarkFile(depth, name, href, outFmt, add_date=None, last_visited=None
         if icon_uri:      print(f" - ICON_URI ::{icon_uri}",                                                     file=outFile)
         if icon:          print(f" - ICON ::{icon}",                                                             file=outFile)
         if last_charset:  print(f" - LAST_CHARSET ::{last_charset}",                                             file=outFile)
-        print(                   "",                                                                             file=outFile) # add details terminating newline
-    elif outFmt=='.url':                                              # format as window shortcut .url
-        print("[InternetShortcut]", file=outFile)
+        print(                   "",                                                                             file=outFile) # add terminating newline
+
+    elif outFmt=='.url':                                                                   # format as window shortcut .url
+        print(                   "[InternetShortcut]", file=outFile)
         print(                  f"TITLE={name}",                                                            file=outFile)
         print(                  f"URL={href}",                                                              file=outFile)
         print(                  f"DATE_ADDED={unixEpochToIsoDateTime(addDate)}",                            file=outFile)
@@ -105,26 +108,26 @@ def makeBookmarkFile(depth, name, href, outFmt, add_date=None, last_visited=None
         if icon_uri:      print(f"ICON_URI={icon_uri}",                                                     file=outFile)
         if icon:          print(f"ICON={icon}",                                                             file=outFile)
         if last_charset:  print(f"LAST_CHARSET={last_charset}",                                             file=outFile)
-        print(                   "",                                                                        file=outFile) # add details terminating newline
-    elif outFmt=='.html':
-        # create ".html" file like the .html one Firefox extension "QC Save Link" makes, i.e.
-        # <html>
-        #   <head>
-        #     <meta http-equiv="refresh" content="0; url=https://askubuntu.com/questions/1151709/suspend-not-working-in-ubuntu-18-04-and-19-04" />
-        #  </head>
-        # </html>
-        print("", file=outFile) # add details terminating newline
-    elif outFmt=='.webloc':
-        # <?xml version="1.0" encoding="UTF-8"?>
-        # <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        # <plist version="1.0">
-        # <dict>
-        #    <key>URL</key>
-        #    <string>http://example.com</string>
-        # </dict>
-        # </plist>
-        print("", file=outFile) # add details terminating newline
+        print(                   "",                                                                        file=outFile) # add terminating newline
 
+    elif outFmt=='.html':                                                                  # create ".html" file like the .html one Firefox extension "QC Save Link" makes, i.e.
+        print( "<html>",                                                    file=outFile)
+        print( "  <head>",                                                  file=outFile)
+        print(f'    <meta http-equiv="refresh" content="0; url={href}" />', file=outFile)
+        print( "  </head>",                                                 file=outFile)
+        print( "</html>",                                                   file=outFile)
+        print( "",                                                          file=outFile)  # add terminating newline
+
+    elif outFmt=='.webloc':
+        print( '<?xml version="1.0" encoding="UTF-8"?>',                                                                 file=outFile)
+        print( '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">', file=outFile)  # optional?
+        print( '<plist version="1.0">',                                                                                  file=outFile)
+        print( '  <dict>',                                                                                               file=outFile)
+        print(f'    <key>URL</key> <string>{href}</string>',                                                             file=outFile)
+        print(f'    <key>DATE_ADDED</key> <string>{unixEpochToIsoDateTime(addDate)}</string>',                           file=outFile)  # non-standard additional info
+        print( '  </dict>',                                                                                              file=outFile)
+        print( '</plist>',                                                                                               file=outFile)
+        print( "",                                                                                                       file=outFile)  # add details terminating newline
 
     return outFile, addDate
 
@@ -178,6 +181,7 @@ def readSqliteBookmarks(dbFile):
             else:
                 print('Failed to find parent with id=', prnt, file=sys.stderr)
     allDict[1]['name'] = 'subroot'
+
     return allDict
 
 def dftSqliteDict(fldrPath, node, allDict, outFmt, depth=0):
@@ -372,7 +376,7 @@ if __name__ == "__main__":
 
     parser.add_argument('file',                                   type=str, help="file containing urls")                                                 # Add required positional argument
     parser.add_argument('writeFolder', nargs='?', default=None,   type=str, help="path to folder inside which folder & files hierarchy will be created") # Add optional positional
-    parser.add_argument('-v',  '--verbose',  action='store_true')    # be verbose
+    parser.add_argument('-v',  '--verbose',  action='store_true')     # be verbose
 
     exclsve_grp = parser.add_mutually_exclusive_group(required=True)  # Create mutually exclusive group
     exclsve_grp.add_argument('-ow', '--webloc',   action='store_true', help='write url files in .webloc format')
@@ -390,11 +394,11 @@ if __name__ == "__main__":
     rootWriteFldr = vars(args)['writeFolder']
     if not rootWriteFldr: print("DEBUG: no write folder given, output to stdout in org-mode format")
 
-    if not rootWriteFldr: outFmt = ".org"      # default, implies to stdout
+    if not rootWriteFldr: outFmt = ".org"                             # default, implies to stdout
     elif args.webloc:     outFmt = ".webloc"
     elif args.html:       outFmt = ".html"
     elif args.url:        outFmt = ".url"
-    else:                 outFmt = ".org"      # default, implies to stdout
+    else:                 outFmt = ".org"                             # default, implies to stdout
     if args.verbose: print("DEBUG: output files format =", outFmt)
 
     if  rootWriteFldr: os.makedirs(rootWriteFldr, exist_ok=True)
