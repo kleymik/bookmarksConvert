@@ -59,7 +59,7 @@ def closeUrlFile(fileDscrptr, urlDate=None):
     if fileDscrptr!=sys.stdout:
         fileDscrptr.close()
         if urlDate:
-            print("Closed", urlFileName, urlDate, unixEpochToIsoDateTime(urlDate)) # check date conversioning
+            if args.verbose: print("Closed", urlFileName, urlDate, unixEpochToIsoDateTime(urlDate)) # check date conversioning
             stat = os.stat(urlFileName)
             os.utime(urlFileName, times=(stat.st_atime, urlDate))     # utime must have two ints or floats (unix timestamps): (atime, mtime)
 
@@ -76,7 +76,7 @@ def makeBookmarkFile(depth, name, href, add_date=None, last_visited=None, last_m
         outFile = sys.stdout
     else:
         urlFileName   = fldrPath / Path(pageCleanName if pageCleanName!="" else "notitle").with_suffix('.url')
-        outFile = open(urlFileName, 'w')                              # file is not closed in this function as it may need more writing to (in the html parsing case)
+        outFile = open(urlFileName, 'w', encoding='utf-8')            # file is not closed in this function as it may need more writing to (in the html parsing case)
 
     if add_date: addDate = int(add_date)/date_scaling
     else:
@@ -84,22 +84,23 @@ def makeBookmarkFile(depth, name, href, add_date=None, last_visited=None, last_m
         addDate =0
 
     if outFile!=sys.stdout:
-        prefix, pstfix = "",    ":"               # vanilla key-value notation
+        prefix, pstfix = "",    "="               # vanilla key-value notation
         print("[InternetShortcut]", file=outFile)
     else:
         prefix, pstfix = " - ", " ::"             # format of org-mode named list entries
 
-    print(                  f"{prefix}TITLE{pstfix}",          name,                                                    file=outFile)
-    print(                  f"{prefix}URI{pstfix}",            href,                                                    file=outFile)
-    print(                  f"{prefix}DATE_ADDED{pstfix}",     unixEpochToIsoDateTime(addDate),                         file=outFile)
-    if last_modified: print(f"{prefix}DATE_MODIFIED{pstfix}",  unixEpochToIsoDateTime(int(last_modified)/date_scaling), file=outFile)
-    if last_visited:  print(f"{prefix}DATE_VISITED{pstfix}",   unixEpochToIsoDateTime(int(last_visited)/date_scaling),  file=outFile)
-    if icon_uri:      print(f"{prefix}ICON_URI{pstfix}",       icon_uri,                                                file=outFile)
-    if icon:          print(f"{prefix}ICON{pstfix}",           icon,                                                    file=outFile)
-    if last_charset:  print(f"{prefix}LAST_CHARSET{pstfix}",   last_charset,                                            file=outFile)
-    print(                   "",                                                                                        file=outFile) # add details terminating newline
+    print(                  f"{prefix}TITLE{pstfix}{name}",                                                            file=outFile)
+    print(                  f"{prefix}URL{pstfix}{href}",                                                              file=outFile)
+    print(                  f"{prefix}DATE_ADDED{pstfix}{unixEpochToIsoDateTime(addDate)}",                            file=outFile)
+    if last_modified: print(f"{prefix}DATE_MODIFIED{pstfix}{unixEpochToIsoDateTime(int(last_modified)/date_scaling)}", file=outFile)
+    if last_visited:  print(f"{prefix}DATE_VISITED{pstfix}{unixEpochToIsoDateTime(int(last_visited)/date_scaling)}",   file=outFile)
+    if icon_uri:      print(f"{prefix}ICON_URI{pstfix}{icon_uri}",                                                     file=outFile)
+    if icon:          print(f"{prefix}ICON{pstfix}{icon}",                                                             file=outFile)
+    if last_charset:  print(f"{prefix}LAST_CHARSET{pstfix}{last_charset}",                                             file=outFile)
+    print(                   "",                                                                                       file=outFile) # add details terminating newline
     return outFile, addDate
 
+# TBD
 def makeBookmarkFileHtml(depth, name, href, add_date=None, last_visited=None, last_modified=None, icon_uri=None, icon=None, last_charset=None, date_scaling=1, fldrPath=None):
     """create a file named like the name or title associated with url and add the details of the url into the file
        date_scaling should be either 1 or 1000000 depending on whether the epoch integer date time is in seconds or in microseconds
@@ -118,7 +119,7 @@ def makeBookmarkFileHtml(depth, name, href, add_date=None, last_visited=None, la
         outFile = sys.stdout
     else:
         urlFileName   = fldrPath / Path(pageCleanName if pageCleanName!="" else "notitle").with_suffix('.url')
-        outFile = open(urlFileName, 'w')                              # file is not closed in this function as it may need more writing to (in the html parsing case)
+        outFile = open(urlFileName, 'w', encoding='utf-8')            # file is not closed in this function as it may need more writing to (in the html parsing case)
 
     if add_date: addDate = int(add_date)/date_scaling
     else:
@@ -191,13 +192,13 @@ def readSqliteBookmarks(dbFile):
     allDict[1]['name'] = 'subroot'
     return allDict
 
-def dftSqliteDict(fldrPath, node, allDict, depth=0):
+def dftSqliteDict(fldrPath, node, allDict, outFmt, depth=0):
     """depth first traversal of dict derived from moz_bookmarks sqlite tables
     """
 
     if 'children' in node:
         subFldrPath = makeBookmarkFolderDir(depth, node['name'], fldrPath=fldrPath)
-        for c in node['children']: dftSqliteDict(subFldrPath, allDict[c], allDict, depth+1)
+        for c in node['children']: dftSqliteDict(subFldrPath, allDict[c], allDict, outFmt, depth+1)
     else:
         outFile, fileDate = makeBookmarkFile(depth, node['name'], node['url'], add_date=node['dateAdded'], date_scaling=1000000, fldrPath=fldrPath)
         closeUrlFile(outFile, fileDate)
@@ -222,14 +223,14 @@ def readJsonBookmarks(infile):
     with open(infile, 'r') as source: data = json.load(source)
     return data
 
-def dftJson(fldrPath, jData, depth=0):
+def dftJson(fldrPath, jData, outFmt, depth=0):
     """depth first traversal of json
     """
     name = jData['name'] if 'name' in jData else jData['title']
 
     if jData['type']=='text/x-moz-place-container':
         subFldrPath = makeBookmarkFolderDir(depth, name, fldrPath=fldrPath)
-        for c in jData['children']: dftJson(subFldrPath, c, depth+1)
+        for c in jData['children']: dftJson(subFldrPath, c, outFmt, depth+1)
 
     elif jData['type']=='text/x-moz-place' and jData['title'] not in ('Recently Bookmarked','Recent Tags', 'Most Visited'):
         if 'dateAdded' in jData:
@@ -270,7 +271,7 @@ def readHtmlBookmarks(inFile):
     sio.close()
     return pTree
 
-def dftHtml(fldrPath, el, depth=0):
+def dftHtml(fldrPath, el, outFmt, depth=0):
     """depth first traversal to create fh (=file hierarchy)
     """
 
@@ -304,7 +305,7 @@ def dftHtml(fldrPath, el, depth=0):
 
             if fldrPath: subpath = Path(fldrPath) / Path(subFldr)
             else:        subpath = None
-            dftHtml(subpath, e, depth+1)
+            dftHtml(subpath, e, outFmt, depth+1)
 
 # ------------------------------------------------------------------------- other html functions
 
@@ -384,30 +385,40 @@ if __name__ == "__main__":
     parser.add_argument('file',                                   type=str, help="file containing urls")                                                 # Add required positional argument
     parser.add_argument('writeFolder', nargs='?', default=None,   type=str, help="path to folder inside which folder & files hierarchy will be created") # Add optional positional
     parser.add_argument('-v',  '--verbose',  action='store_true')    # be verbose
-    parser.add_argument('-ow', '--webloc',   action='store_true')    # write url files in .webloc format
-    parser.add_argument('-oh', '--html',     action='store_true')    # write url files in .html format
-    parser.add_argument('-ou', '--url',      action='store_true')    # write url files in .url format
+
+    exclsve_grp = parser.add_mutually_exclusive_group(required=True)  # Create mutually exclusive group
+    exclsve_grp.add_argument('-ow', '--webloc',   action='store_true', help='write url files in .webloc format')
+    exclsve_grp.add_argument('-oh', '--html',     action='store_true', help='write url files in .html format')
+    exclsve_grp.add_argument('-ou', '--url',      action='store_true', help='write url files in .url format')
+    exclsve_grp.add_argument('-oo', '--orgmode',  action='store_true', help='write urls in one  .org format file')
 
     args = parser.parse_args()                                       # print(args.filename, args.verbose)
+
 
     if args.verbose: print("DEBUG: parsed args", args)
     if args.verbose: print("DEBUG: determine file or files")
 
     inFile        = Path(vars(args)['file'])
     rootWriteFldr = vars(args)['writeFolder']
+    if not rootWriteFldr: print("DEBUG: no write folder given, output to stdout in org-mode format")
 
+    if not rootWriteFldr: outFmt = ".org"      # default, implies to stdout
+    elif args.webloc:     outFmt = ".webloc"
+    elif args.html:       outFmt = ".html"
+    elif args.url:        outFmt = ".url"
+    else:                 outFmt = ".org"      # default, implies to stdout
+    if args.verbose: print("DEBUG: output files format =", outFmt)
 
     if  rootWriteFldr: os.makedirs(rootWriteFldr, exist_ok=True)
 
-
     if   inFile.suffix=='.sqlite':
         pTreeDict = readSqliteBookmarks(inFile)
-        dftSqliteDict(rootWriteFldr, pTreeDict[0], pTreeDict)
+        dftSqliteDict(rootWriteFldr, pTreeDict[0], pTreeDict, outFmt)
     elif inFile.suffix=='.json':
         pTreeObj = readJsonBookmarks(inFile)
-        dftJson(rootWriteFldr, pTreeObj)
+        dftJson(rootWriteFldr, pTreeObj, outFmt)
     elif inFile.suffix=='.html':
         pTreeObj = readHtmlBookmarks(inFile)
-        dftHtml(rootWriteFldr, pTreeObj.getroot())
+        dftHtml(rootWriteFldr, pTreeObj.getroot(), outFmt)
 
 
