@@ -9,6 +9,7 @@
 #                xml so that seems expandable, e.g. even to keep the entire web-page too.
 #   ".url"     - which is kind-of a microsoft-ism?
 #   ".desktop" - linuxy used with mimtypes
+#   ".html"    - a meta-tagged url to refresh, or..
 #   ".html"    - an actual web-page instead of a link to a page
 #
 
@@ -27,7 +28,7 @@ dt             = str(datetime.datetime.now())
 logDir         = f"{expanduser('~')}/history"                         # folder to keep history log of urls opened
 defaultBrowser = ['xdg-open', 'firefox', 'chromium', 'konqueror'][1]  # could add command line options, such as --new-tab [url]?
 stderrFile     = f"{logDir}/openUrlFileLast.stderr"
-browseLogFile  = f"{logDir}/openUrlFileBrowseLog_{dt[:6]}.log"        # logfile for each month
+browseLogFile  = f"{logDir}/openUrlFileBrowseLog_{dt[:7]}.log"        # logfile for each month
 
 
 def get_url_file(file_path):
