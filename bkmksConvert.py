@@ -42,7 +42,7 @@ def cleanName(txt):
 
     if txt:
         cleanTxt = re.sub(r"[^a-zA-Z0-9_\ ]", "", txt).strip().replace(" ","_")
-        if len(cleanTxt)>0: return cleanTxt[:250]                      # file names can be at most 255 chars long
+        if len(cleanTxt)>0: return cleanTxt[:200]                      # file *paths* can be at most 255? chars long - in nextCloud?
         else:               return ""
     else:
         return ""
@@ -375,7 +375,7 @@ if __name__ == "__main__":
         epilog=descrip)
 
     parser.add_argument('file',                                   type=str, help="file containing urls")                                                 # Add required positional argument
-    parser.add_argument('writeFolder', nargs='?', default=None,   type=str, help="path to folder inside which folder & files hierarchy will be created") # Add optional positional
+    parser.add_argument('writeFolder', nargs='?', default=None,   type=str, help="path to folder inside which (many!) folder & files hierarchy will be created") # Add optional positional
     parser.add_argument('-v',  '--verbose',  action='store_true')     # be verbose
 
     exclsve_grp = parser.add_mutually_exclusive_group(required=True)  # Create mutually exclusive group
