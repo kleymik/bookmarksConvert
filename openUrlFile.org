@@ -151,6 +151,7 @@ internet shortcut
 | bmksConvert.py          | .url, .html?                               | NA                                 |
 |-------------------------+--------------------------------------------+------------------------------------|
 
+** notes
 |-----------+-----------------+-------------------|
 | EXTENSION | DESCRIPTION     |                   |
 |-----------+-----------------+-------------------|
@@ -160,15 +161,16 @@ internet shortcut
 | .desktop  | .ini style URL= |                   |
 |-----------+-----------------+-------------------|
 
-|-----------+---------+------------------------+------------+-------------+-----------+---|
-| HOST      | UI      | Save                   | GIVES FILE | openUrlFile | emacsOpen |   |
-|           |         | ACTION                 |            | ACTION      | ACTION    |   |
-|-----------+---------+------------------------+------------+-------------+-----------+---|
-| maxwell   | gnome   | drag-padlock to folder |            |             |           |   |
-| dirac     | gnome   | drag-padlock to folder | .desktop   |             |           |   |
-| astro     | android |                        |            |             |           |   |
-| nextcloud | browser |                        |  .webloc?  |             |           | b |
-|-----------+---------+------------------------+------------+-------------+-----------+---|
+** more notes
+|-----------+---------+------------------------+------------+-------------+-----------|
+| HOST      | UI      | Save                   | GIVES FILE | openUrlFile | emacsOpen |
+|           |         | ACTION                 |            | ACTION      | ACTION    |
+|-----------+---------+------------------------+------------+-------------+-----------|
+| maxwell   | gnome   | drag-padlock to folder |            |             |           |
+| dirac     | gnome   | drag-padlock to folder | .desktop   |             |           |
+| astro     | android |                        |            |             |           |
+| nextcloud | browser |                        | .webloc?   |             |           |
+|-----------+---------+------------------------+------------+-------------+-----------|
 
 * Notes
 
