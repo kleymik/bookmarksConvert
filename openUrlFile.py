@@ -122,8 +122,9 @@ if __name__ == "__main__":
             print(f"URL={url}, ", file=blf, end='')
             print(f"FILE={fl}",   file=blf, end='')
             print(f"",            file=blf)
+        os.system("sleep 2") # guard against recursively invoking the browser (tabs)! ad infinitum
         subprocess.run([browser, url], check=True, stderr=open(stderrFile, 'w'), text=True)
-      # print(f"DATE={dt}, URL={url}")
+        if args.verbose: print(f"DATE={dt}, URL={url}")
 
 # TBD inspect first lines for:  "<!doctype html><html..."
 # TBD - if it's a folder open all bookmark files in the folder!
