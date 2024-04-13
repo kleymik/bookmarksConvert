@@ -1,84 +1,60 @@
 
-OpenUrlFile.py
 
-UrlFiles - files identifying a web-page - containing a url that identifies the web page
-  usual in some structured format, e.g attribute=value lines, xml, html, etc
+    ==  openUrlFile.py  ==
 
-* types of urlFile
 
-** From ChatGpt
+Url Files: small files containing a url that identifies a web page,
+usually in some structured format, e.g attribute=value lines, xml,
+html, .ini, etc.
 
-.lnk (Windows Shortcut):    On Windows systems, .lnk files are used as
+There are no firm standards, the most common: Nextcloud link editor
+offers ".webloc" which apparently is an Apple-ism or ".url" which is
+kind-of a microsoft-ism?  .webloc are xml, so that seems expandable,
+e.g even to keep the entire web-page too.
+
+* Types of Url File
+
+(some opinions from ChatGpt)
+
+** .lnk (Windows Shortcut): 
+  On Windows systems, .lnk files are used as
   shortcuts and may contain URLs. These files are commonly created when
   a user creates a shortcut to a website on their desktop.
 
-.website:    Some Windows systems use .website files to store links to
+** .link:   
+  The .link extension is sometimes used to indicate files
+  containing links or shortcuts.
+
+** .website:    
+  Some Windows systems use .website files to store links to
   websites. These files are essentially XML files containing information
   about the associated URL.
 
-.desktop (Generic):   While .desktop files are commonly associated with
+** .desktop (Generic):   
+  While .desktop files are commonly associated with
   Linux desktop environments, they can also be used on other
   platforms. These files are often used to create shortcuts or
   launchers, and they may contain URLs.
 
-.uri or .url:   Some systems may use .uri as an alternative extension
-  for files containing URLs. Additionally, files with the extension .url
-  may be used on various platforms.
-
-.htm or .html (HTML Files):  Simple HTML files can be used to store a
-  URL. Users might create small HTML files with a link to a website.
-
-.link:   The .link extension is sometimes used to indicate files
-  containing links or shortcuts.
-
-** .kdelnk   (KDE)
-** .url      internet shortcut
-
-[InternetShortcut]
-URL=https://www.gnu.org/software/emacs/manual/html_node/cl/Structures.html
-[SomeMoreInfo]
-blah blah blah
-[metadata]
-foo bar
-
-** .webloc   (Mac!)
-
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>URL</key>
-    <string>http://example.com</string>
-</dict>
-</plist>
-
-** .desktop  (gnome?)
-
+** .desktop  (Gnome?)
 
 at (windows) .url file:
 
-[Desktop Entry]
-Icon=text-html
-Type=Link
-URL[$e]=https://superuser.com/questions/27490/create-a-desktop-shortcut-for-a-group-of-bookmarked-tabs-in-firefox
+: [Desktop Entry]
+: Icon=text-html
+: Type=Link
+: URL[$e]=https://superuser.com/questions/27490/create-a-desktop-shortcut-for-a-group-of-bookmarked-tabs-in-firefox
 
 
-[Desktop Entry]
-Encoding=UTF-8
-Name=Link to NETGEAR Router
-Type=Link
-URL=http://192.168.0.1/start.htm
-Icon=text-html
-
+: [Desktop Entry]
+: Encoding=UTF-8
+: Name=Link to NETGEAR Router
+: Type=Link
+: URL=http://192.168.0.1/start.htm
+: Icon=text-html
 
 
 https://wiki.archlinux.org/title/desktop_entries
-
-** .url file (windows?):
-[Desktop Entry]
-Icon=text-html
-Type=Link
-URL[$e]=https://superuser.com/questions/27490/create-a-desktop-shortcut-for-a-group-of-bookmarked-tabs-in-firefox
 
 *** Desktop Entry
 
@@ -102,16 +78,116 @@ URL[$e]=https://superuser.com/questions/27490/create-a-desktop-shortcut-for-a-gr
  # Describes the categories in which this entry should be shown
  Categories=Education;Languages;Java;
 
+** .uri or .url:   
+  Some systems may use .uri as an alternative extension
+  for files containing URLs. Additionally, files with the extension .url
+  may be used on various platforms.
 
-* related apps
+** .url      
 
+internet shortcut
+
+: [InternetShortcut]
+: URL=https://www.gnu.org/software/emacs/manual/html_node/cl/Structures.html
+: [SomeMoreInfo]
+: blah blah blah
+: [metadata]
+: foo bar
+
+(windows?):
+: 
+[Desktop Entry]
+: Icon=text-html
+: Type=Link
+: URL[$e]=https://superuser.com/questions/27490/create-a-desktop-shortcut-for-a-group-of-bookmarked-tabs-in-firefox
+
+** .htm or .html (HTML Files):  Simple HTML files can be used to store a
+  URL. Users might create small HTML files with a link to a website.
+
+: <html>
+: <head>
+: <meta http-equiv="refresh" 
+:       content="0; url=https://docs.nvidia.com/deeplearning/cudnn/installation/overview.html#overview"
+: />
+: </head>
+: </html>
+
+** .kdelnk   (KDE)
+
+? tbd
+
+** .webloc   (Mac!)  QC-OK
+
+.webloc file needs a terminating carriage return 
+
+: <plist version="1.0"><dict>
+: <key>URL</key><string>about:addons</string>
+: </dict></plist>
+
+: <?xml version="1.0" encoding="UTF-8"?>
+: <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+: <plist version="1.0">
+: <dict>
+:    <key>URL</key>
+:    <string>http://example.com</string>
+: </dict>
+: </plist>
+:
+
+
+
+* Interaction Table
+
+|-------------------------+--------------------------------------------+------------------------------------|
+| App/Context             | CREATE/Save Link                           | LAUNCH Link                        |
+|-------------------------+--------------------------------------------+------------------------------------|
+| Firefox                 | drag padlock icon => .desktop (gnome)      |                                    |
+| Firefox (QuickCut Save) | .url?, .desktop?, .webloc?, .html?, custom | *.html* OK!, .url via OpenUrlFile! |
+| Dolphin                 | NA                                         | OpenUrlFile                        |
+| NextCloud (link editor) | .url(Windows)                              | .url(Windows), .webloc (macOS)     |
+| Android App NextCloud   | ?                                          | link editor not available          |
+| Android App X-plore     | NA                                         | ??  termux OpenUrlFile?            |
+| Emacs                   | ?                                          | J OpenUrlFile                      |
+| bmksConvert.py          | .url, .html?                               | NA                                 |
+|-------------------------+--------------------------------------------+------------------------------------|
+
+|-----------+-----------------+-------------------|
+| EXTENSION | DESCRIPTION     |                   |
+|-----------+-----------------+-------------------|
+| .html     | actual page     |                   |
+| .webloc   | apple dtd xml   | Internet Shortcut |
+| .url      | .ini style URL= |                   |
+| .desktop  | .ini style URL= |                   |
+|-----------+-----------------+-------------------|
+
+|-----------+---------+------------------------+------------+-------------+-----------+---|
+| HOST      | UI      | Save                   | GIVES FILE | openUrlFile | emacsOpen |   |
+|           |         | ACTION                 |            | ACTION      | ACTION    |   |
+|-----------+---------+------------------------+------------+-------------+-----------+---|
+| maxwell   | gnome   | drag-padlock to folder |            |             |           |   |
+| dirac     | gnome   | drag-padlock to folder | .desktop   |             |           |   |
+| astro     | android |                        |            |             |           |   |
+| nextcloud | browser |                        |  .webloc?  |             |           | b |
+|-----------+---------+------------------------+------------+-------------+-----------+---|
+
+* Notes
+
+firefox fileype associations takes precedence 
+ via 
+handlers.json:
+  "application/x-mswinurl":{"action":1,"ask":true}},
+
+QuickCut only does .html and .webloc?
+  QuickCutr works fine but configuring it is glitchy
+
+
+* Related Apps
 ** webloccer.py
 
 https://github.com/afwlehmann/webloccer
 
-
 ** QuickCut (firefox extension)
-
+changing settings sometimes works
 offers 5 url file types but on .html seems to work :
  Unix(.desktop)
  Windows(.url)
@@ -122,7 +198,58 @@ offers 5 url file types but on .html seems to work :
 Custom file types cannot be saved in any folde
  
 
-* manipulating mime-types
+* Manipulating mime-types
+
+   xdg-mime query default image/png                        - GET default launcher
+   xdg-mime query default text/plain 
+   xdg-mime query default type/subtype 
+
+   grep url     /home/kleyn/.config/mimeapps.list          - GET all mimetype with "url"
+   grep openUrl /home/kleyn/.config/mimeapps.list
+   grep firefox /home/kleyn/.config/mimeapps.list = ...
+                                                     application/x-desktop=firefox.desktop;
+                                                     application/x-mswinurl=firefox.desktop;
+                                                     image/webp=firefox.desktop;
+                                                     text/html=firefox.desktop
+                                                   ...
+
+   xdg-mime query filetype tmp.txt                         - GET launcher of given file
+   xdg-mime query default image/png       = xviewer.desktop
+   xdg-mime query gvim.desktop text/plain = firefox.desktop
+
+   xdg-mime default gvim.desktop text/plain                - SET launcher for mimetype "text/plain"
+
+   xdg-mime install --mode system MyApp-MyFileType.xml     - REGISTER the new mime-type with sudo
+
+folders:
+
+     /usr/share/applications/defaults.list  = list of ".desktop" files for each launcher app, e.g.:   "application/vnd.oasis.opendocument.database=libreoffice-base.desktop"
+
+     /home/user/.config/mimeapps.list
+
+     /usr/share/mime
+
+     /usr/share/app-install/desktop
+
+     /usr/share/applications/mimeinfo.cache
+
+     /usr/share/applications/defaults.list
+
+
+>grep openUrlFile ~/.config/mimeapps.list 
+  application/x-desktop=openUrlFile.py-2.desktop;openUrlFile.py.desktop;org.kde.kwrite.desktop;libreoffice-writer.desktop;okularApplication_txt.desktop;xed.desktop;emacs28.desktop;emacs27.desktop;emacs.desktop;geany.desktop;emacs-term.desktop;emacsclient28.desktop;
+  application/x-mswinurl=openUrlFile.py-3.desktop;
+  application/xml=userapp-openUrlFile.py-7I6XF2.desktop;
+  application/x-desktop=openUrlFile.py.desktop;
+
+>xdg-settings --list
+ Known properties:
+  default-url-scheme-handler    Default handler for URL scheme
+  default-web-browser           Default web browser
+
+>xdg-settings get default-web-browser
+firefox.desktop
+
 
 invoke through
   kde-open
@@ -130,10 +257,6 @@ invoke through
 
 But caution!, easy to configure in a way that causes and infinite loop:
 openUrlFile.py  calls xdg-open, which calls openurlFile.py, which calls...
-
-1)     xdg-mime query filetype tmp.txt
-2)     xdg-mime query default text/plain 
-3) Set:xdg-mime default gvim.desktop text/plain
 
 xdg-query all mime types that used a particular program
 
@@ -147,7 +270,19 @@ xdg-mime default /path/to/your/script.py application/x-extension-desktop
 
 xdg-mime query default firefox.desktop   
 
-grep openUrl /home/kleyn/.config/mimeapps.list
+
+
+cat /home/kleyn/.config/mimeapps.list
+[Added Associations]
+application/x-desktop=openUrlFile.py-2.desktop;openUrlFile.py.desktop;org.kde.kwrite.desktop;libreoffice-writer.desktop;okularApplication_txt.desktop;xed.desktop;emacs28.desktop;emacs27.desktop;emacs.desktop;geany.desktop;emacs-term.desktop;emacsclient28.desktop;
+application/x-mswinurl=openUrlFile.py-3.desktop;
+application/x-remmina=org.remmina.Remmina.desktop;
+
+
++ notes
+
+Save-padlock on Gnome from Firefox to folder = .desktop
+
 
 * org settings
 #+STARTUP: fold
